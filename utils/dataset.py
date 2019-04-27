@@ -168,7 +168,6 @@ def create_input_files(dataset,
                        split_path,
                        image_folder,
                        captions_per_image,
-                       tags_per_image,
                        min_word_freq,
                        output_folder,
                        max_len=100):
@@ -179,7 +178,6 @@ def create_input_files(dataset,
     :param split_path: path of index, tags, and caption
     :param image_folder: folder with downloaded images
     :param captions_per_image: number of captions to sample per image
-    :param tags_per_image: number of tags to sample per image
     :param min_word_freq: words occuring less frequently than this threshold are binned as <unk>s
     :param output_folder: folder to save files
     :param max_len: don't sample captions longer than this length
@@ -247,7 +245,6 @@ def create_input_files(dataset,
     # Create a base/root name for all output files
     base_filename = dataset + '_' + \
         str(captions_per_image if captions_per_image > -1 else 'all') + '_cap_per_img_' + \
-        str(tags_per_image if tags_per_image > -1 else 'all') + '_tag_per_img_' + \
         str(min_word_freq) + '_min_word_freq'
 
     # Save word map to a JSON
@@ -281,29 +278,18 @@ def create_input_files(dataset,
 
             for i, path in enumerate(tqdm(impaths)):
 
-                # Sample captions and tags
+                # Sample captions
                 if len(imcaps[i]) < captions_per_image:
                     captions = imcaps[i] + [choice(imcaps[i])
-                                            for _ in range(captions_per_image - len(imcaps[i]))]
-                    tags = imtags[i] + [choice(imtags[i])
-                                            for _ in range(tags_per_image - len(imtags[i]))]     
+                                            for _ in range(captions_per_image - len(imcaps[i]))]    
                 else:
-                    old_captions_per_image = captions_per_image
-                    captions_per_image = len(imcaps[i]) if captions_per_image == -1 else captions_per_image
-                    
-                    old_tags_per_image = tags_per_image
-                    tags_per_image = len(imtags[i]) if tags_per_image == -1 else tags_per_image
-
                     captions = sample(imcaps[i], k=captions_per_image)
-                    tags = sample(imtags[i], k=tags_per_image)
+                
+                # Add tags
+                tags = imtags[i]
 
                 # Sanity check
                 assert len(captions) == captions_per_image
-                assert len(tags) == tags_per_image
-
-
-                captions_per_image = old_captions_per_image
-                tags_per_image = old_tags_per_image
 
                 # Read images
                 img = imread(impaths[i])
@@ -330,8 +316,8 @@ def create_input_files(dataset,
                     caplens.append(c_len)
 
             # Sanity check
-            # assert images.shape[0] * \
-            #     captions_per_image == len(enc_captions) == len(caplens)
+            assert images.shape[0] * \
+                captions_per_image == len(enc_captions) == len(caplens)
 
             # Save encoded captions and their lengths to JSON files
             with open(os.path.join(output_folder, split + '_CAPTIONS_' + base_filename + '.json'), 'w') as j:

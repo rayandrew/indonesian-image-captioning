@@ -19,7 +19,7 @@ from nltk.translate.bleu_score import corpus_bleu
 
 # Data parameters
 data_folder = './scn_data'  # folder with data files saved by create_input_files.py
-data_name = 'flickr10k_all_cap_per_img_all_tag_per_img_5_min_word_freq'  # base name shared by data files
+data_name = 'flickr10k_5_cap_per_img_5_min_word_freq'  # base name shared by data files
 
 # Model parameters
 emb_dim = 512  # dimension of word embeddings
