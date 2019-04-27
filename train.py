@@ -52,6 +52,8 @@ def main():
 
     global best_bleu4, epochs_since_improvement, checkpoint, start_epoch, fine_tune_encoder, data_name, word_map
 
+    print('Running on device {}\n'.format(device))
+
     # Read word map
     word_map_file = os.path.join(data_folder, 'WORDMAP_' + data_name + '.json')
     with open(word_map_file, 'r') as j:
@@ -104,6 +106,7 @@ def main():
 
     # Epochs
     for epoch in range(start_epoch, epochs):
+        print('Current epoch {}\n'.format(epoch + 1))
 
         # Decay learning rate if there is no improvement for 8 consecutive epochs, and terminate training after 20
         if epochs_since_improvement == 20:
@@ -136,6 +139,8 @@ def main():
             print("\nEpochs since last improvement: %d\n" % (epochs_since_improvement,))
         else:
             epochs_since_improvement = 0
+
+        print('Saving checkpoint for epoch {}\n'.format(epoch + 1))
 
         # Save checkpoint
         save_checkpoint(data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
