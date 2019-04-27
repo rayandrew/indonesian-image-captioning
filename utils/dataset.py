@@ -253,6 +253,12 @@ def create_input_files(dataset,
     # Save word map to a JSON
     with open(os.path.join(output_folder, 'WORDMAP_' + base_filename + '.json'), 'w') as j:
         json.dump(word_map, j)
+        j.close()
+
+    # Save tag map to a JSON
+    with open(os.path.join(output_folder, 'TAGMAP_' + base_filename + '.json'), 'w') as j:
+        json.dump(data['all_tags'], j)
+        j.close()
 
     # Sample captions for each image, save images to HDF5 file, and captions and their lengths to JSON files
     seed(123)
