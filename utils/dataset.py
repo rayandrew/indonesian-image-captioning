@@ -257,7 +257,7 @@ def create_input_files(dataset,
 
     # Save tag map to a JSON
     with open(os.path.join(output_folder, 'TAGMAP_' + base_filename + '.json'), 'w') as j:
-        json.dump(data['all_tags'], j)
+        json.dump({ v: k for k, v in enumerate(data['all_tags']) }, j)
         j.close()
 
     # Sample captions for each image, save images to HDF5 file, and captions and their lengths to JSON files
