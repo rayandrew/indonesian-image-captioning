@@ -1,4 +1,4 @@
-**[PyTorch](https://pytorch.org) Semantic Compositional Networks with Attention**.*
+# **[PyTorch](https://pytorch.org)** Semantic Compositional Networks with Attention
 
 
 ## Credits
