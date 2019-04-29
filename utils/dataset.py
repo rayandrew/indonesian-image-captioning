@@ -9,6 +9,24 @@ from collections import Counter
 from random import seed, choice, sample
 
 
+def get_ground_truth(tags, all_tags, tags_count):
+    """Create ground truth array (like one-hot)
+    Arguments:
+      tags {array} -- image's tags
+      all_tags {array} -- tag mapping in number
+      tags_count {integer} -- num of tags
+    Returns:
+      Numpy.Array -- ground truth of image
+    """
+
+    ground_truth = np.zeros(tags_count, dtype=np.int8)
+
+    for tag in tags:
+        ground_truth[all_tags[tag]] = 1.0
+
+    return ground_truth
+
+
 def _filter_data_by_indexes(filenames, data, indexes):
     """This function is used to filter the files and captions based on the indexes
     Arguments:
@@ -170,6 +188,7 @@ def create_input_files(dataset,
                        captions_per_image,
                        min_word_freq,
                        output_folder,
+                       tag_size=1000,
                        max_len=100):
     """
     Creates input files for training, validation, and test data.
@@ -180,6 +199,7 @@ def create_input_files(dataset,
     :param captions_per_image: number of captions to sample per image
     :param min_word_freq: words occuring less frequently than this threshold are binned as <unk>s
     :param output_folder: folder to save files
+    :param tag_size: tag vocab count
     :param max_len: don't sample captions longer than this length
     """
 
@@ -230,9 +250,12 @@ def create_input_files(dataset,
             test_image_tags.append(img['tags'])
 
     # Sanity check
-    assert len(train_image_paths) == len(train_image_captions) == len(train_image_tags)
-    assert len(val_image_paths) == len(val_image_captions) == len(val_image_tags)
-    assert len(test_image_paths) == len(test_image_captions) == len(test_image_tags)
+    assert len(train_image_paths) == len(
+        train_image_captions) == len(train_image_tags)
+    assert len(val_image_paths) == len(
+        val_image_captions) == len(val_image_tags)
+    assert len(test_image_paths) == len(
+        test_image_captions) == len(test_image_tags)
 
     # Create word map
     words = [w for w in word_freq.keys() if word_freq[w] > min_word_freq]
@@ -254,81 +277,102 @@ def create_input_files(dataset,
 
     # Save tag map to a JSON
     with open(os.path.join(output_folder, 'TAGMAP_' + base_filename + '.json'), 'w') as j:
-        json.dump({ v: k for k, v in enumerate(data['all_tags']) }, j)
+        tagwordidx = {v: k for k, v in enumerate(data['all_tags'])}
+        # idxword = {k: v for k, v in enumerate(data['all_tags'])}
+        json.dump(tagwordidx, j)
         j.close()
 
     # Sample captions for each image, save images to HDF5 file, and captions and their lengths to JSON files
     seed(123)
     for impaths, imcaps, imtags, split in [(train_image_paths, train_image_captions, train_image_tags, 'TRAIN'),
-                                   (val_image_paths, val_image_captions, val_image_tags, 'VAL'),
-                                   (test_image_paths, test_image_captions, test_image_tags, 'TEST')]:
+                                           (val_image_paths, val_image_captions,
+                                            val_image_tags, 'VAL'),
+                                           (test_image_paths, test_image_captions, test_image_tags, 'TEST')]:
 
         with h5py.File(os.path.join(output_folder, split + '_IMAGES_' + base_filename + '.hdf5'), 'w') as h:
-            # Make a note of the number of captions we are sampling per image
-            h.attrs['captions_per_image'] = captions_per_image
+            with h5py.Fileos.path.join(output_folder, split + '_TAGS_' + base_filename + '.hdf5'), 'w') as t:
+                # Make a note of the number of captions we are sampling per image
+                h.attrs['captions_per_image']=captions_per_image
 
-            # Create dataset inside HDF5 file to store images
-            images = h.create_dataset(
-                'images', (len(impaths), 3, 256, 256), dtype='uint8')
+                # Make a note of the vocab tag vocab defined
+                t.attrs['tag_size']=tag_size
 
-            print("\nReading %s images and captions, storing to file...\n" % split)
+                # Create dataset inside HDF5 file to store images
+                images=h.create_dataset(
+                    'images', (len(impaths), 3, 256, 256), dtype = 'uint8')
 
-            enc_captions = []
-            caplens = []
+                # Create tags dataset inside HDF5 file to store images
+                tags=h.create_dataset(
+                    'tags', (len(impaths), tag_size), dtype = 'uint8')
 
-            for i, path in enumerate(tqdm(impaths)):
+                print("\nReading %s images and captions, storing to file...\n" % split)
 
-                # Sample captions
-                if len(imcaps[i]) < captions_per_image:
-                    captions = imcaps[i] + [choice(imcaps[i])
-                                            for _ in range(captions_per_image - len(imcaps[i]))]    
-                else:
-                    captions = sample(imcaps[i], k=captions_per_image)
-                
-                # Add tags
-                tags = imtags[i]
+                enc_captions=[]
+                caplens=[]
+
+                raw_tags=[]
+                enc_tags=[]
+                taglens=[]
+
+                for i, path in enumerate(tqdm(impaths)):
+
+                    # Sample captions
+                    if len(imcaps[i]) < captions_per_image:
+                        captions=imcaps[i] + [choice(imcaps[i])
+                                                for _ in range(captions_per_image - len(imcaps[i]))]
+                    else:
+                        captions = sample(imcaps[i], k=captions_per_image)
+
+                    # Sanity check
+                    assert len(captions) == captions_per_image
+
+                    # Read images
+                    img = imread(impaths[i])
+                    if len(img.shape) == 2:
+                        img = img[: , : , np.newaxis]
+                        img = np.concatenate([img, img, img], axis=2)
+                    img = imresize(img, (256, 256))
+                    img = img.transpose(2, 0, 1)
+                    assert img.shape == (3, 256, 256)
+                    assert np.max(img) <= 255
+
+                    # Save image to HDF5 file
+                    images[i] = img
+
+                    # Add tags
+                    raw_tags.append(imtags[i])
+                    # Save tags ground truth to HDF5 file
+                    tags[i] = get_ground_truth(
+                        imtags[i], tagwordidx, tag_size)
+
+                    for j, c in enumerate(captions):
+                        # Encode captions
+                        enc_c = [word_map['<start>']] + [word_map.get(word, word_map['<unk>']) for word in c] + [
+                            word_map['<end>']] + [word_map['<pad>']] * (max_len - len(c))
+
+                        # Find caption lengths
+                        c_len = len(c) + 2
+
+                        enc_captions.append(enc_c)
+                        caplens.append(c_len)
 
                 # Sanity check
-                assert len(captions) == captions_per_image
+                assert images.shape[0] * \
+                    captions_per_image == len(enc_captions) == len(caplens)
 
-                # Read images
-                img = imread(impaths[i])
-                if len(img.shape) == 2:
-                    img = img[:, :, np.newaxis]
-                    img = np.concatenate([img, img, img], axis=2)
-                img = imresize(img, (256, 256))
-                img = img.transpose(2, 0, 1)
-                assert img.shape == (3, 256, 256)
-                assert np.max(img) <= 255
+                # Save encoded captions and their lengths to JSON files
+                with open(os.path.join(output_folder, split + '_CAPTIONS_' + base_filename + '.json'), 'w') as j:
+                    json.dump(enc_captions, j)
+                    j.close()
 
-                # Save image to HDF5 file
-                images[i] = img
+                with open(os.path.join(output_folder, split + '_CAPLENS_' + base_filename + '.json'), 'w') as j:
+                    json.dump(caplens, j)
+                    j.close()
 
-                for j, c in enumerate(captions):
-                    # Encode captions
-                    enc_c = [word_map['<start>']] + [word_map.get(word, word_map['<unk>']) for word in c] + [
-                        word_map['<end>']] + [word_map['<pad>']] * (max_len - len(c))
+                # Save tags
+                with open(os.path.join(output_folder, split + '_RAWTAGS_' + base_filename + '.json'), 'w') as j:
+                    json.dump(raw_tags, j)
+                    j.close()
 
-                    # Find caption lengths
-                    c_len = len(c) + 2
-
-                    enc_captions.append(enc_c)
-                    caplens.append(c_len)
-
-            # Sanity check
-            assert images.shape[0] * \
-                captions_per_image == len(enc_captions) == len(caplens)
-
-            # Save encoded captions and their lengths to JSON files
-            with open(os.path.join(output_folder, split + '_CAPTIONS_' + base_filename + '.json'), 'w') as j:
-                json.dump(enc_captions, j)
-                j.close()
-
-            with open(os.path.join(output_folder, split + '_CAPLENS_' + base_filename + '.json'), 'w') as j:
-                json.dump(caplens, j)
-                j.close()
-
-            # Save tags
-            with open(os.path.join(output_folder, split + '_TAGS_' + base_filename + '.json'), 'w') as j:
-                json.dump(tags, j)
-                j.close()
+                t.close()
+                h.close()
