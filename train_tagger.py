@@ -139,8 +139,8 @@ def main():
                        criterion=criterion)
 
         # Check if there was an improvement
-        is_best = acc > best_acc
-        best_acc = max(acc, best_acc)
+        is_best = acc.avg > best_acc
+        best_acc = max(acc.avg, best_acc)
         if not is_best:
             epochs_since_improvement += 1
             print("\nEpochs since last improvement: %d\n" %
@@ -174,7 +174,7 @@ def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_
     batch_time = AverageMeter()  # forward prop. + back prop. time
     data_time = AverageMeter()  # data loading time
     losses = AverageMeter()  # loss (per word decoded)
-    top5accs = AverageMeter()  # top5 accuracy
+    accs = AverageMeter()  # top accuracy
 
     start = time.time()
 
@@ -212,9 +212,9 @@ def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_
             encoder_optimizer.step()
 
         # Keep track of metrics
-        top5 = binary_accuracy(scores, targets)
+        acc = binary_accuracy(scores, targets)
         losses.update(loss.item())
-        top5accs.update(top5)
+        accs.update(acc)
         batch_time.update(time.time() - start)
 
         start = time.time()
@@ -225,10 +225,10 @@ def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_
                   'Batch Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'Data Load Time {data_time.val:.3f} ({data_time.avg:.3f})\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'Top-5 Accuracy {top5.val:.3f} ({top5.avg:.3f})'.format(epoch, i, len(train_loader),
-                                                                          batch_time=batch_time,
-                                                                          data_time=data_time, loss=losses,
-                                                                          top5=top5accs))
+                  'Top Accuracy {acc.val:.3f} ({acc.avg:.3f})'.format(epoch, i, len(train_loader),
+                                                                      batch_time=batch_time,
+                                                                      data_time=data_time, loss=losses,
+                                                                      acc=accs))
 
 
 def validate(val_loader, encoder, decoder, criterion):
@@ -247,7 +247,7 @@ def validate(val_loader, encoder, decoder, criterion):
 
     batch_time = AverageMeter()
     losses = AverageMeter()
-    top5accs = AverageMeter()
+    accs = AverageMeter()
 
     start = time.time()
 
@@ -273,8 +273,8 @@ def validate(val_loader, encoder, decoder, criterion):
 
             # Keep track of metrics
             losses.update(loss.item())
-            top5 = binary_accuracy(scores, targets)
-            top5accs.update(top5)
+            top = binary_accuracy(scores, targets)
+            accs.update(top)
             batch_time.update(time.time() - start)
 
             start = time.time()
@@ -283,16 +283,15 @@ def validate(val_loader, encoder, decoder, criterion):
                 print('Validation: [{0}/{1}]\t'
                       'Batch Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                      'Top-5 Accuracy {top5.val:.3f} ({top5.avg:.3f})\t'.format(i, len(val_loader), batch_time=batch_time,
-                                                                                loss=losses, top5=top5accs))
+                      'Top Accuracy {acc.val:.3f} ({acc.avg:.3f})\t'.format(i, len(val_loader), batch_time=batch_time,
+                                                                            loss=losses, acc=accs))
 
         print(
-            '\n * LOSS - {loss.avg:.3f}, TOP-5 ACCURACY - {top5.avg:.3f}, ACCURACY - {acc.avg:.3f}\n'.format(
+            '\n * LOSS - {loss.avg:.3f}, ACCURACY - {acc.avg:.3f}\n'.format(
                 loss=losses,
-                top5=top5accs,
-                acc=top5))
+                acc=accs))
 
-    return top5
+    return accs
 
 
 if __name__ == '__main__':
