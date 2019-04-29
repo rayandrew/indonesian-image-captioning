@@ -290,35 +290,35 @@ def create_input_files(dataset,
                                            (test_image_paths, test_image_captions, test_image_tags, 'TEST')]:
 
         with h5py.File(os.path.join(output_folder, split + '_IMAGES_' + base_filename + '.hdf5'), 'w') as h:
-            with h5py.Fileos.path.join(output_folder, split + '_TAGS_' + base_filename + '.hdf5'), 'w') as t:
+            with h5py.File(os.path.join(output_folder, split + '_TAGS_' + base_filename + '.hdf5'), 'w') as t:
                 # Make a note of the number of captions we are sampling per image
-                h.attrs['captions_per_image']=captions_per_image
+                h.attrs['captions_per_image'] = captions_per_image
 
                 # Make a note of the vocab tag vocab defined
-                t.attrs['tag_size']=tag_size
+                t.attrs['tag_size'] = tag_size
 
                 # Create dataset inside HDF5 file to store images
-                images=h.create_dataset(
-                    'images', (len(impaths), 3, 256, 256), dtype = 'uint8')
+                images = h.create_dataset(
+                    'images', (len(impaths), 3, 256, 256), dtype='uint8')
 
                 # Create tags dataset inside HDF5 file to store images
-                tags=h.create_dataset(
-                    'tags', (len(impaths), tag_size), dtype = 'uint8')
+                tags = h.create_dataset(
+                    'tags', (len(impaths), tag_size), dtype='uint8')
 
                 print("\nReading %s images and captions, storing to file...\n" % split)
 
-                enc_captions=[]
-                caplens=[]
+                enc_captions = []
+                caplens = []
 
-                raw_tags=[]
-                enc_tags=[]
-                taglens=[]
+                raw_tags = []
+                enc_tags = []
+                taglens = []
 
                 for i, path in enumerate(tqdm(impaths)):
 
                     # Sample captions
                     if len(imcaps[i]) < captions_per_image:
-                        captions=imcaps[i] + [choice(imcaps[i])
+                        captions = imcaps[i] + [choice(imcaps[i])
                                                 for _ in range(captions_per_image - len(imcaps[i]))]
                     else:
                         captions = sample(imcaps[i], k=captions_per_image)
@@ -329,7 +329,7 @@ def create_input_files(dataset,
                     # Read images
                     img = imread(impaths[i])
                     if len(img.shape) == 2:
-                        img = img[: , : , np.newaxis]
+                        img = img[:, :, np.newaxis]
                         img = np.concatenate([img, img, img], axis=2)
                     img = imresize(img, (256, 256))
                     img = img.transpose(2, 0, 1)
