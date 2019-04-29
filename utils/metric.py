@@ -1,3 +1,6 @@
+import torch
+
+
 class AverageMeter(object):
     """
     Keeps track of most recent, average, sum, and count of a metric.
@@ -34,3 +37,11 @@ def accuracy(scores, targets, k):
     correct = ind.eq(targets.view(-1, 1).expand_as(ind))
     correct_total = correct.view(-1).float().sum()  # 0D tensor
     return correct_total.item() * (100.0 / batch_size)
+
+
+def binary_accuracy(score, targets):
+    mean = (score >= 0.5).eq(targets >= 0.5) \
+        .type(torch.FloatTensor) \
+        .mean()
+
+    return mean * 100.0

@@ -108,13 +108,15 @@ class TaggerDataset(Dataset):
 
         tag = torch.LongTensor(self.tags[i])
 
-        if self.split is 'TRAIN':
-            return img, tag
-        else:
-            # For validation of testing, also return all 'captions_per_image' captions to find BLEU-4 score
-            all_tags = torch.LongTensor(
-                self.captions[((i // self.tpi) * self.tpi):(((i // self.tpi) * self.tpi) + self.tpi)])
-            return img, tag, all_tags
+        return img, tag
+
+        # if self.split is 'TRAIN':
+        #     return img, tag
+        # else:
+        #     # For validation of testing, also return all 'tags_per_img' captions to find BLEU-4 score
+        #     all_tags = torch.LongTensor(
+        #         self.tags[((i // self.tpi) * self.tpi):(((i // self.tpi) * self.tpi) + self.tpi)])
+        #     return img, tag, all_tags
 
     def __len__(self):
         return self.dataset_size

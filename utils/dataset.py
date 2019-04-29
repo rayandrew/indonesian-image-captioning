@@ -19,7 +19,7 @@ def get_ground_truth(tags, all_tags, tags_count):
       Numpy.Array -- ground truth of image
     """
 
-    ground_truth = np.zeros(tags_count, dtype=np.int8)
+    ground_truth = np.zeros(tags_count, dtype=np.float32)
 
     for tag in tags:
         ground_truth[all_tags[tag]] = 1.0
@@ -303,7 +303,7 @@ def create_input_files(dataset,
 
                 # Create tags dataset inside HDF5 file to store images
                 tags = t.create_dataset(
-                    'tags', (len(impaths), tag_size), dtype='uint8')
+                    'tags', (len(impaths), tag_size), dtype='float32')
 
                 print("\nReading %s images and captions, storing to file...\n" % split)
 

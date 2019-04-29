@@ -7,38 +7,40 @@ import torchvision.transforms as transforms
 from torch import nn
 from torch.nn.utils.rnn import pack_padded_sequence
 
-from models import Encoder, DecoderWithAttention
+from models import Encoder, Tagger
 
-from datasets import *
+from datasets import TaggerDataset
 
-from utils.checkpoint import save_checkpoint
-from utils.metric import AverageMeter, accuracy
+from utils.checkpoint import save_tagger_checkpoint
+from utils.metric import AverageMeter, binary_accuracy
 from utils.optimizer import clip_gradient, adjust_learning_rate
-
-from nltk.translate.bleu_score import corpus_bleu
 
 # Data parameters
 data_folder = './scn_data'  # folder with data files saved by create_input_files.py
-data_name = 'flickr10k_5_cap_per_img_5_min_word_freq'  # base name shared by data files
+# base name shared by data files
+data_name = 'flickr10k_5_cap_per_img_5_min_word_freq'
 
 # Model parameters
-emb_dim = 512  # dimension of word embeddings
-attention_dim = 512  # dimension of attention linear layers
-decoder_dim = 512  # dimension of decoder RNN
+bottleneck_size = 2048
+semantic_size = 1000
 dropout = 0.5
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # sets device for model and PyTorch tensors
-cudnn.benchmark = True  # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
+# sets device for model and PyTorch tensors
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# set to true only if inputs to model are fixed size; otherwise lot of computational overhead
+cudnn.benchmark = True
 
 # Training parameters
 start_epoch = 0
-epochs = 120  # number of epochs to train for (if early stopping is not triggered)
-epochs_since_improvement = 0  # keeps track of number of epochs since there's been an improvement in validation BLEU
+# number of epochs to train for (if early stopping is not triggered)
+epochs = 8
+# keeps track of number of epochs since there's been an improvement in validation BLEU
+epochs_since_improvement = 0
 batch_size = 32
 workers = 1  # for data-loading; right now, only 1 works with h5py
 encoder_lr = 1e-4  # learning rate for encoder if fine-tuning
 decoder_lr = 4e-4  # learning rate for decoder
+tolerance = 1e-10  # acc tolerance
 grad_clip = 5.  # clip gradients at an absolute value of
-alpha_c = 1.  # regularization parameter for 'doubly stochastic attention', as in the paper
 best_bleu4 = 0.  # BLEU-4 score right now
 print_freq = 100  # print training/validation stats every __ batches
 fine_tune_encoder = False  # fine-tune encoder?
@@ -50,22 +52,15 @@ def main():
     Training and validation.
     """
 
-    global best_bleu4, epochs_since_improvement, checkpoint, start_epoch, fine_tune_encoder, data_name, word_map
+    global best_bleu4, epochs_since_improvement, checkpoint, start_epoch, fine_tune_encoder, data_name
 
     print('Running on device {}\n'.format(device))
 
-    # Read word map
-    word_map_file = os.path.join(data_folder, 'WORDMAP_' + data_name + '.json')
-    with open(word_map_file, 'r') as j:
-        word_map = json.load(j)
-
     # Initialize / load checkpoint
     if checkpoint is None:
-        decoder = DecoderWithAttention(attention_dim=attention_dim,
-                                       embed_dim=emb_dim,
-                                       decoder_dim=decoder_dim,
-                                       vocab_size=len(word_map),
-                                       dropout=dropout)
+        decoder = Tagger(bottleneck_size=bottleneck_size,
+                         semantic_size=semantic_size,
+                         dropout=dropout)
         decoder_optimizer = torch.optim.Adam(params=filter(lambda p: p.requires_grad, decoder.parameters()),
                                              lr=decoder_lr)
         encoder = Encoder()
@@ -92,17 +87,29 @@ def main():
     encoder = encoder.to(device)
 
     # Loss function
-    criterion = nn.CrossEntropyLoss().to(device)
+    criterion = nn.BCELoss().to(device)
 
     # Custom dataloaders
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
+
     train_loader = torch.utils.data.DataLoader(
-        CaptionDataset(data_folder, data_name, 'TRAIN', transform=transforms.Compose([normalize])),
-        batch_size=batch_size, shuffle=True, num_workers=workers, pin_memory=True)
+        TaggerDataset(data_folder, data_name, 'TRAIN',
+                      tag_size=semantic_size,
+                      transform=transforms.Compose([normalize])),
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=workers,
+        pin_memory=True)
+
     val_loader = torch.utils.data.DataLoader(
-        CaptionDataset(data_folder, data_name, 'VAL', transform=transforms.Compose([normalize])),
-        batch_size=batch_size, shuffle=True, num_workers=workers, pin_memory=True)
+        TaggerDataset(data_folder, data_name, 'VAL',
+                      tag_size=semantic_size,
+                      transform=transforms.Compose([normalize])),
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=workers,
+        pin_memory=True)
 
     # Epochs
     for epoch in range(start_epoch, epochs):
@@ -136,15 +143,16 @@ def main():
         best_bleu4 = max(recent_bleu4, best_bleu4)
         if not is_best:
             epochs_since_improvement += 1
-            print("\nEpochs since last improvement: %d\n" % (epochs_since_improvement,))
+            print("\nEpochs since last improvement: %d\n" %
+                  (epochs_since_improvement,))
         else:
             epochs_since_improvement = 0
 
         print('Saving checkpoint for epoch {}\n'.format(epoch + 1))
 
         # Save checkpoint
-        save_checkpoint(data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
-                        decoder_optimizer, recent_bleu4, is_best)
+        save_tagger_checkpoint(data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
+                               decoder_optimizer, recent_bleu4, is_best)
 
 
 def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, epoch):
@@ -171,31 +179,20 @@ def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_
     start = time.time()
 
     # Batches
-    for i, (imgs, caps, caplens) in enumerate(train_loader):
+    for i, (imgs, tags) in enumerate(train_loader):
         data_time.update(time.time() - start)
 
         # Move to GPU, if available
         imgs = imgs.to(device)
-        caps = caps.to(device)
-        caplens = caplens.to(device)
+        tags = tags.to(device)
 
         # Forward prop.
         imgs = encoder(imgs)
-        scores, caps_sorted, decode_lengths, alphas, sort_ind = decoder(imgs, caps, caplens)
-
-        # Since we decoded starting with <start>, the targets are all words after <start>, up to <end>
-        targets = caps_sorted[:, 1:]
-
-        # Remove timesteps that we didn't decode at, or are pads
-        # pack_padded_sequence is an easy trick to do this
-        scores, _ = pack_padded_sequence(scores, decode_lengths, batch_first=True)
-        targets, _ = pack_padded_sequence(targets, decode_lengths, batch_first=True)
+        scores = decoder(imgs)
+        targets = tags
 
         # Calculate loss
         loss = criterion(scores, targets)
-
-        # Add doubly stochastic attention regularization
-        loss += alpha_c * ((1. - alphas.sum(dim=1)) ** 2).mean()
 
         # Back prop.
         decoder_optimizer.zero_grad()
@@ -215,9 +212,9 @@ def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_
             encoder_optimizer.step()
 
         # Keep track of metrics
-        top5 = accuracy(scores, targets, 5)
-        losses.update(loss.item(), sum(decode_lengths))
-        top5accs.update(top5, sum(decode_lengths))
+        top5 = binary_accuracy(scores, targets)
+        losses.update(loss.item())
+        top5accs.update(top5)
         batch_time.update(time.time() - start)
 
         start = time.time()
@@ -254,44 +251,30 @@ def validate(val_loader, encoder, decoder, criterion):
 
     start = time.time()
 
-    references = list()  # references (true captions) for calculating BLEU-4 score
-    hypotheses = list()  # hypotheses (predictions)
-
     # explicitly disable gradient calculation to avoid CUDA memory error
     # solves the issue #57
     with torch.no_grad():
         # Batches
-        for i, (imgs, caps, caplens, allcaps) in enumerate(val_loader):
+        for i, (imgs, tags) in enumerate(val_loader):
 
             # Move to device, if available
             imgs = imgs.to(device)
-            caps = caps.to(device)
-            caplens = caplens.to(device)
+            tags = tags.to(device)
 
             # Forward prop.
             if encoder is not None:
                 imgs = encoder(imgs)
-            scores, caps_sorted, decode_lengths, alphas, sort_ind = decoder(imgs, caps, caplens)
 
-            # Since we decoded starting with <start>, the targets are all words after <start>, up to <end>
-            targets = caps_sorted[:, 1:]
-
-            # Remove timesteps that we didn't decode at, or are pads
-            # pack_padded_sequence is an easy trick to do this
-            scores_copy = scores.clone()
-            scores, _ = pack_padded_sequence(scores, decode_lengths, batch_first=True)
-            targets, _ = pack_padded_sequence(targets, decode_lengths, batch_first=True)
+            scores = decoder(imgs)
+            targets = tags
 
             # Calculate loss
             loss = criterion(scores, targets)
 
-            # Add doubly stochastic attention regularization
-            loss += alpha_c * ((1. - alphas.sum(dim=1)) ** 2).mean()
-
             # Keep track of metrics
-            losses.update(loss.item(), sum(decode_lengths))
-            top5 = accuracy(scores, targets, 5)
-            top5accs.update(top5, sum(decode_lengths))
+            losses.update(loss.item())
+            top5 = binary_accuracy(scores, targets)
+            top5accs.update(top5)
             batch_time.update(time.time() - start)
 
             start = time.time()
@@ -303,40 +286,13 @@ def validate(val_loader, encoder, decoder, criterion):
                       'Top-5 Accuracy {top5.val:.3f} ({top5.avg:.3f})\t'.format(i, len(val_loader), batch_time=batch_time,
                                                                                 loss=losses, top5=top5accs))
 
-            # Store references (true captions), and hypothesis (prediction) for each image
-            # If for n images, we have n hypotheses, and references a, b, c... for each image, we need -
-            # references = [[ref1a, ref1b, ref1c], [ref2a, ref2b], ...], hypotheses = [hyp1, hyp2, ...]
-
-            # References
-            allcaps = allcaps[sort_ind]  # because images were sorted in the decoder
-            for j in range(allcaps.shape[0]):
-                img_caps = allcaps[j].tolist()
-                img_captions = list(
-                    map(lambda c: [w for w in c if w not in {word_map['<start>'], word_map['<pad>']}],
-                        img_caps))  # remove <start> and pads
-                references.append(img_captions)
-
-            # Hypotheses
-            _, preds = torch.max(scores_copy, dim=2)
-            preds = preds.tolist()
-            temp_preds = list()
-            for j, p in enumerate(preds):
-                temp_preds.append(preds[j][:decode_lengths[j]])  # remove pads
-            preds = temp_preds
-            hypotheses.extend(preds)
-
-            assert len(references) == len(hypotheses)
-
-        # Calculate BLEU-4 scores
-        bleu4 = corpus_bleu(references, hypotheses)
-
         print(
-            '\n * LOSS - {loss.avg:.3f}, TOP-5 ACCURACY - {top5.avg:.3f}, BLEU-4 - {bleu}\n'.format(
+            '\n * LOSS - {loss.avg:.3f}, TOP-5 ACCURACY - {top5.avg:.3f}, ACCURACY - {acc.avg:.3f}\n'.format(
                 loss=losses,
                 top5=top5accs,
-                bleu=bleu4))
+                acc=top5))
 
-    return bleu4
+    return top5
 
 
 if __name__ == '__main__':
