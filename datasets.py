@@ -106,7 +106,7 @@ class TaggerDataset(Dataset):
         if self.transform is not None:
             img = self.transform(img)
 
-        tag = torch.LongTensor(self.tags[i])
+        tag = torch.FloatTensor(self.tags[i])
 
         return img, tag
 

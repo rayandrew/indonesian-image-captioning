@@ -189,10 +189,7 @@ def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_
         # Forward prop.
         imgs = encoder(imgs)
         scores = decoder(imgs)
-        targets = tags.type(torch.FloatTensor)
-
-        print(scores)
-        print(imgs.shape, scores.shape, targets.shape)
+        targets = tags
 
         # Calculate loss
         loss = criterion(scores, targets)
