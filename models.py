@@ -43,13 +43,64 @@ class Dim(IntEnum):
     feature = 2
 
 
-class Tagger(nn.Module):
+class EncoderTagger(nn.Module):
+    """
+    Encoder.
+    """
+
+    def __init__(self):
+        super(EncoderTagger, self).__init__()
+
+        resnet = torchvision.models.resnet152(
+            pretrained=True)  # pretrained ImageNet ResNet-152
+
+        # Remove linear and pool layers (since we're not doing classification)
+        modules = list(resnet.children())[:-1]
+        self.resnet = nn.Sequential(*modules)
+
+        # Resize image to fixed size to allow input images of variable size
+        # self.adaptive_pool = nn.AdaptiveAvgPool2d(
+        #     (12, 12))
+
+        self.fine_tune()
+
+    def forward(self, images):
+        """
+        Forward propagation.
+
+        :param images: images, a tensor of dimensions (batch_size, 3, image_size, image_size)
+        :return: encoded images
+        """
+        out = self.resnet(
+            images)  # (batch_size, 2048, image_size/32, image_size/32)
+        # (batch_size, 2048, encoded_image_size, encoded_image_size)
+        # out = self.adaptive_pool(out)
+        # (batch_size, encoded_image_size, encoded_image_size, 2048)
+        # out = out.permute(0, 2, 3, 1)
+        out = out.view(images.size(0), -1)
+        return out
+
+    def fine_tune(self, fine_tune=True):
+        """
+        Allow or prevent the computation of gradients for convolutional blocks 2 through 4 of the encoder.
+
+        :param fine_tune: Allow?
+        """
+        for p in self.resnet.parameters():
+            p.requires_grad = False
+        # If fine-tuning, only fine-tune convolutional blocks 2 through 4
+        for c in list(self.resnet.children())[5:]:
+            for p in c.parameters():
+                p.requires_grad = fine_tune
+
+
+class ImageTagger(nn.Module):
     """
     Image Tagger
     """
 
     def __init__(self, bottleneck_size, semantic_size, dropout=0.3):
-        super(Tagger, self).__init__()
+        super(ImageTagger, self).__init__()
         self.bottleneck_size = bottleneck_size
         self.semantic_size = semantic_size
         self.dropout = dropout
@@ -60,17 +111,18 @@ class Tagger(nn.Module):
 
     def forward(self, bottleneck):
         predictions = self.fc(bottleneck)
+        predictions = self.dropout(predictions)
         predictions = self.sigmoid(predictions)
-        return self.dropout(predictions)
+        return predictions
 
 
-class Encoder(nn.Module):
+class EncoderSCN(nn.Module):
     """
     Encoder.
     """
 
     def __init__(self, encoded_image_size=14):
-        super(Encoder, self).__init__()
+        super(EncoderSCN, self).__init__()
         self.enc_image_size = encoded_image_size
 
         resnet = torchvision.models.resnet152(

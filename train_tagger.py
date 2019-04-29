@@ -7,7 +7,7 @@ import torchvision.transforms as transforms
 from torch import nn
 from torch.nn.utils.rnn import pack_padded_sequence
 
-from models import Encoder, Tagger
+from models import EncoderTagger, ImageTagger
 
 from datasets import TaggerDataset
 
@@ -41,7 +41,7 @@ encoder_lr = 1e-4  # learning rate for encoder if fine-tuning
 decoder_lr = 4e-4  # learning rate for decoder
 tolerance = 1e-10  # acc tolerance
 grad_clip = 5.  # clip gradients at an absolute value of
-best_bleu4 = 0.  # BLEU-4 score right now
+best_acc = 0.  # BLEU-4 score right now
 print_freq = 100  # print training/validation stats every __ batches
 fine_tune_encoder = False  # fine-tune encoder?
 checkpoint = None  # path to checkpoint, None if none
@@ -52,18 +52,18 @@ def main():
     Training and validation.
     """
 
-    global best_bleu4, epochs_since_improvement, checkpoint, start_epoch, fine_tune_encoder, data_name
+    global best_acc, epochs_since_improvement, checkpoint, start_epoch, fine_tune_encoder, data_name
 
     print('Running on device {}\n'.format(device))
 
     # Initialize / load checkpoint
     if checkpoint is None:
-        decoder = Tagger(bottleneck_size=bottleneck_size,
-                         semantic_size=semantic_size,
-                         dropout=dropout)
+        decoder = ImageTagger(bottleneck_size=bottleneck_size,
+                              semantic_size=semantic_size,
+                              dropout=dropout)
         decoder_optimizer = torch.optim.Adam(params=filter(lambda p: p.requires_grad, decoder.parameters()),
                                              lr=decoder_lr)
-        encoder = Encoder()
+        encoder = EncoderTagger()
         encoder.fine_tune(fine_tune_encoder)
         encoder_optimizer = torch.optim.Adam(params=filter(lambda p: p.requires_grad, encoder.parameters()),
                                              lr=encoder_lr) if fine_tune_encoder else None
@@ -72,7 +72,7 @@ def main():
         checkpoint = torch.load(checkpoint)
         start_epoch = checkpoint['epoch'] + 1
         epochs_since_improvement = checkpoint['epochs_since_improvement']
-        best_bleu4 = checkpoint['bleu-4']
+        best_acc = checkpoint['accuracy']
         decoder = checkpoint['decoder']
         decoder_optimizer = checkpoint['decoder_optimizer']
         encoder = checkpoint['encoder']
@@ -133,14 +133,14 @@ def main():
               epoch=epoch)
 
         # One epoch's validation
-        recent_bleu4 = validate(val_loader=val_loader,
-                                encoder=encoder,
-                                decoder=decoder,
-                                criterion=criterion)
+        acc = validate(val_loader=val_loader,
+                       encoder=encoder,
+                       decoder=decoder,
+                       criterion=criterion)
 
         # Check if there was an improvement
-        is_best = recent_bleu4 > best_bleu4
-        best_bleu4 = max(recent_bleu4, best_bleu4)
+        is_best = acc > best_acc
+        best_acc = max(acc, best_acc)
         if not is_best:
             epochs_since_improvement += 1
             print("\nEpochs since last improvement: %d\n" %
@@ -152,7 +152,7 @@ def main():
 
         # Save checkpoint
         save_tagger_checkpoint(data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
-                               decoder_optimizer, recent_bleu4, is_best)
+                               decoder_optimizer, acc, is_best)
 
 
 def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, epoch):
@@ -189,7 +189,10 @@ def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_
         # Forward prop.
         imgs = encoder(imgs)
         scores = decoder(imgs)
-        targets = tags
+        targets = tags.type(torch.FloatTensor)
+
+        print(scores)
+        print(imgs.shape, scores.shape, targets.shape)
 
         # Calculate loss
         loss = criterion(scores, targets)

@@ -1,4 +1,6 @@
 import time
+import os
+import json
 
 import torch.backends.cudnn as cudnn
 import torch.optim
@@ -24,8 +26,10 @@ data_name = 'flickr10k_5_cap_per_img_5_min_word_freq'
 
 # Model parameters
 emb_dim = 512  # dimension of word embeddings
+factored_dim = 512  # dimension of factor
 attention_dim = 512  # dimension of attention linear layers
 decoder_dim = 512  # dimension of decoder RNN
+semantic_size = 1000  # dimension of tag vocabs
 dropout = 0.5
 # sets device for model and PyTorch tensors
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -67,6 +71,8 @@ def main():
     # Initialize / load checkpoint
     if checkpoint is None:
         decoder = DecoderWithAttention(attention_dim=attention_dim,
+                                       factored_dim=512,
+                                       semantic_dim=semantic_size,
                                        embed_dim=emb_dim,
                                        decoder_dim=decoder_dim,
                                        vocab_size=len(word_map),
