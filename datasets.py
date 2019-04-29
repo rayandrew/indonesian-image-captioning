@@ -90,9 +90,9 @@ class TaggerDataset(Dataset):
         self.tpi = tag_size
 
         # Load encoded captions (completely into memory)
-        self.h = h5py.File(os.path.join(
+        self.t = h5py.File(os.path.join(
             data_folder, self.split + '_TAGS_' + data_name + '.hdf5'), 'r')
-        self.tags = self.h['tags']
+        self.tags = self.t['tags']
 
         # PyTorch transformation pipeline for the image (normalizing, etc.)
         self.transform = transform

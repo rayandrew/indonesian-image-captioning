@@ -302,7 +302,7 @@ def create_input_files(dataset,
                     'images', (len(impaths), 3, 256, 256), dtype='uint8')
 
                 # Create tags dataset inside HDF5 file to store images
-                tags = h.create_dataset(
+                tags = t.create_dataset(
                     'tags', (len(impaths), tag_size), dtype='uint8')
 
                 print("\nReading %s images and captions, storing to file...\n" % split)
@@ -357,6 +357,7 @@ def create_input_files(dataset,
                         caplens.append(c_len)
 
                 # Sanity check
+                assert images.shape[0] == tags.shape[0]
                 assert images.shape[0] * \
                     captions_per_image == len(enc_captions) == len(caplens)
 
