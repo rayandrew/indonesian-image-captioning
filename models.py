@@ -263,23 +263,33 @@ class SCNCell(nn.Module):
         state_below_o = ((tmp1_o * tmp2_o) @ ic_o.t()) + b_io
         state_below_c = ((tmp1_c * tmp2_c) @ ic_c.t()) + b_ic
 
-        x = torch.cat((state_below_i, state_below_f,
-                       state_below_o, state_below_c), 0)
+        x_i = state_below_i.squeeze(0)
+        x_f = state_below_f.squeeze(0)
+        x_o = state_below_o.squeeze(0)
+        x_c = state_below_c.squeeze(0)
 
         if hx is None:
             hx = wemb_input.new_zeros(wemb_input.size(
                 0), self.hidden_size, requires_grad=False)
             hx = (hx, hx)
 
-        self.check_forward_hidden(wemb_input, hx[0], '[0]')
-        self.check_forward_hidden(wemb_input, hx[1], '[1]')
+        self.check_forward_hidden(x_i, hx[0], '[0]')
+        self.check_forward_hidden(x_i, hx[1], '[1]')
 
-        return self.recurrent_step(x, tag_input, hx)
+        self.check_forward_hidden(x_f, hx[0], '[0]')
+        self.check_forward_hidden(x_f, hx[1], '[1]')
 
-    def recurrent_step(self, x, tag_input, hx):
-        [h_, c_] = split_tensor1d(hx, 2)
+        self.check_forward_hidden(x_o, hx[0], '[0]')
+        self.check_forward_hidden(x_o, hx[1], '[1]')
 
-        [x_i, x_f, x_o, x_c] = split_tensor2d(x, self.factor_size)
+        self.check_forward_hidden(x_c, hx[0], '[0]')
+        self.check_forward_hidden(x_c, hx[1], '[1]')
+
+        return self.recurrent_step(x_i, x_f, x_o, x_c, tag_input, hx)
+
+    def recurrent_step(self, x_i, x_f, x_o, x_c, tag_input, hx):
+        h_, c_ = hx
+
         [ha_i, ha_f, ha_o, ha_c] = split_tensor2d(
             self.weight_ha, self.factor_size)
         [hb_i, hb_f, hb_o, hb_c] = split_tensor2d(
@@ -289,11 +299,6 @@ class SCNCell(nn.Module):
         [b_hi, b_hf, b_ho, b_hc] = split_tensor1d(
             self.bias_hh, self.hidden_size)
 
-        # bs, seq_sz, _ = x_i.size()
-
-        # hidden_seq = []
-
-        # for t in range(seq_sz):
         preact_i = (h_ @ ha_i) * (tag_input @ hb_i)
         preact_i = (preact_i @ hc_i.t()) + x_i + b_hi
 
@@ -313,14 +318,6 @@ class SCNCell(nn.Module):
 
         c = f * c_ + i * c
         h = o * torch.tanh(c)
-
-        # h_ = h
-        # c_ = c
-
-        # hidden_seq.append(h.unqueeze(Dim.batch))
-
-        # hidden_seq = torch.cat(hidden_seq, dim=Dim.batch)
-        # hidden_seq = hidden_seq.transpose(Dim.batch, Dim.seq).contiguous()
 
         return h, c
 
