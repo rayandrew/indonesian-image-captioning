@@ -216,14 +216,14 @@ class SCNCell(nn.Module):
         self.weight_ia = nn.Parameter(
             torch.Tensor(input_size, 4 * factor_size))
         self.weight_ib = nn.Parameter(
-            torch.Tensor(hidden_size, 4 * factor_size))
+            torch.Tensor(semantic_size, 4 * factor_size))
         self.weight_ic = nn.Parameter(
             torch.Tensor(hidden_size, 4 * factor_size))
 
         self.weight_ha = nn.Parameter(
             torch.Tensor(hidden_size, 4 * factor_size))
         self.weight_hb = nn.Parameter(
-            torch.Tensor(hidden_size, 4 * factor_size))
+            torch.Tensor(semantic_size, 4 * factor_size))
         self.weight_hc = nn.Parameter(
             torch.Tensor(hidden_size, 4 * factor_size))
 
