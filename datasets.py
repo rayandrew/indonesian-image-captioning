@@ -51,7 +51,7 @@ class SCNDataset(Dataset):
     A PyTorch SCN Dataset class to be used in a PyTorch DataLoader to create batches.
     """
 
-    def __init__(self, data_folder, data_name, split):
+    def __init__(self, data_folder, data_name, split, cpi=5):
         """
         :param data_folder: folder where data files are stored
         :param data_name: base name of processed datasets
@@ -84,21 +84,23 @@ class SCNDataset(Dataset):
         # Total number of datapoints
         self.dataset_size = len(self.captions)
 
+        self.cpi = 5
+
     def __getitem__(self, i):
-        bottleneck = torch.FloatTensor(self.bottlenecks[i])
+        bottleneck = torch.FloatTensor(self.bottlenecks[i // self.cpi])
 
         caption = torch.LongTensor(self.captions[i])
 
         caplen = torch.LongTensor([self.caplens[i]])
 
-        tag = torch.LongTensor(self.tags[i])
+        tag = torch.FloatTensor(self.tags[i // self.cpi])
 
         if self.split is 'TRAIN':
             return bottleneck, tag, caption, caplen
         else:
             # For validation of testing, also return all 'captions_per_image' captions to find BLEU-4 score
             all_captions = torch.LongTensor(
-                self.captions[((i // 5) * 5):(((i // 5) * 5) + 5)])
+                self.captions[((i // self.cpi) * self.cpi):(((i // self.cpi) * self.cpi) + self.cpi)])
             return bottleneck, tag, caption, caplen, all_captions
 
     def __len__(self):
