@@ -58,10 +58,6 @@ class EncoderTagger(nn.Module):
         modules = list(resnet.children())[:-1]
         self.resnet = nn.Sequential(*modules)
 
-        # Resize image to fixed size to allow input images of variable size
-        # self.adaptive_pool = nn.AdaptiveAvgPool2d(
-        #     (12, 12))
-
         self.fine_tune()
 
     def forward(self, images):

@@ -11,7 +11,7 @@ from models import EncoderTagger, ImageTagger
 
 from datasets import TaggerDataset
 
-from utils.checkpoint import save_tagger_checkpoint
+from utils.checkpoint import save_tagger_checkpoint_without_encoder
 from utils.metric import AverageMeter, binary_accuracy
 from utils.optimizer import clip_gradient, adjust_learning_rate
 
@@ -37,13 +37,10 @@ epochs = 8
 epochs_since_improvement = 0
 batch_size = 32
 workers = 1  # for data-loading; right now, only 1 works with h5py
-encoder_lr = 1e-4  # learning rate for encoder if fine-tuning
-decoder_lr = 4e-4  # learning rate for decoder
-tolerance = 1e-10  # acc tolerance
+decoder_lr = 1e-4  # learning rate for encoder if fine-tuning
 grad_clip = 5.  # clip gradients at an absolute value of
-best_acc = 0.  # BLEU-4 score right now
+best_acc = 0.  # Best acc right now
 print_freq = 100  # print training/validation stats every __ batches
-fine_tune_encoder = False  # fine-tune encoder?
 checkpoint = None  # path to checkpoint, None if none
 
 
@@ -52,7 +49,7 @@ def main():
     Training and validation.
     """
 
-    global best_acc, epochs_since_improvement, checkpoint, start_epoch, fine_tune_encoder, data_name
+    global best_acc, epochs_since_improvement, checkpoint, start_epoch, data_name
 
     print('Running on device {}\n'.format(device))
 
@@ -63,10 +60,6 @@ def main():
                               dropout=dropout)
         decoder_optimizer = torch.optim.Adam(params=filter(lambda p: p.requires_grad, decoder.parameters()),
                                              lr=decoder_lr)
-        encoder = EncoderTagger()
-        encoder.fine_tune(fine_tune_encoder)
-        encoder_optimizer = torch.optim.Adam(params=filter(lambda p: p.requires_grad, encoder.parameters()),
-                                             lr=encoder_lr) if fine_tune_encoder else None
 
     else:
         checkpoint = torch.load(checkpoint)
@@ -75,17 +68,9 @@ def main():
         best_acc = checkpoint['accuracy']
         decoder = checkpoint['decoder']
         decoder_optimizer = checkpoint['decoder_optimizer']
-        encoder = checkpoint['encoder']
-        encoder_optimizer = checkpoint['encoder_optimizer']
-        if fine_tune_encoder is True and encoder_optimizer is None:
-            encoder.fine_tune(fine_tune_encoder)
-            encoder_optimizer = torch.optim.Adam(params=filter(lambda p: p.requires_grad, encoder.parameters()),
-                                                 lr=encoder_lr)
 
     # Move to GPU, if available
     decoder = decoder.to(device)
-    encoder = encoder.to(device)
-
     # Loss function
     criterion = nn.BCELoss().to(device)
 
@@ -120,21 +105,19 @@ def main():
             break
         if epochs_since_improvement > 0 and epochs_since_improvement % 8 == 0:
             adjust_learning_rate(decoder_optimizer, 0.8)
-            if fine_tune_encoder:
-                adjust_learning_rate(encoder_optimizer, 0.8)
 
         # One epoch's training
         train(train_loader=train_loader,
-              encoder=encoder,
+              #   encoder=encoder,
               decoder=decoder,
               criterion=criterion,
-              encoder_optimizer=encoder_optimizer,
+              #   encoder_optimizer=encoder_optimizer,
               decoder_optimizer=decoder_optimizer,
               epoch=epoch)
 
         # One epoch's validation
         acc = validate(val_loader=val_loader,
-                       encoder=encoder,
+                       #    encoder=encoder,
                        decoder=decoder,
                        criterion=criterion)
 
@@ -151,11 +134,17 @@ def main():
         print('Saving checkpoint for epoch {}\n'.format(epoch + 1))
 
         # Save checkpoint
-        save_tagger_checkpoint(data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
-                               decoder_optimizer, acc, is_best)
+        save_tagger_checkpoint_without_encoder(data_name, epoch, epochs_since_improvement, decoder,
+                                               decoder_optimizer, acc, is_best)
 
 
-def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, epoch):
+def train(train_loader,
+          #   encoder,
+          decoder,
+          criterion,
+          #   encoder_optimizer,
+          decoder_optimizer,
+          epoch):
     """
     Performs one epoch's training.
 
@@ -168,8 +157,8 @@ def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_
     :param epoch: epoch number
     """
 
-    decoder.train()  # train mode (dropout and batchnorm is used)
-    encoder.train()
+    # decoder.train()  # train mode (dropout and batchnorm is used)
+    # encoder.train()
 
     batch_time = AverageMeter()  # forward prop. + back prop. time
     data_time = AverageMeter()  # data loading time
@@ -179,16 +168,16 @@ def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_
     start = time.time()
 
     # Batches
-    for i, (imgs, tags) in enumerate(train_loader):
+    for i, (bottlenecks, tags) in enumerate(train_loader):
         data_time.update(time.time() - start)
 
         # Move to GPU, if available
-        imgs = imgs.to(device)
+        bottlenecks = bottlenecks.to(device)
         tags = tags.to(device)
 
         # Forward prop.
-        imgs = encoder(imgs)
-        scores = decoder(imgs)
+        # imgs = encoder(imgs)
+        scores = decoder(bottlenecks)
         targets = tags
 
         # Calculate loss
@@ -196,20 +185,14 @@ def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_
 
         # Back prop.
         decoder_optimizer.zero_grad()
-        if encoder_optimizer is not None:
-            encoder_optimizer.zero_grad()
         loss.backward()
 
         # Clip gradients
         if grad_clip is not None:
             clip_gradient(decoder_optimizer, grad_clip)
-            if encoder_optimizer is not None:
-                clip_gradient(encoder_optimizer, grad_clip)
 
         # Update weights
         decoder_optimizer.step()
-        if encoder_optimizer is not None:
-            encoder_optimizer.step()
 
         # Keep track of metrics
         acc = binary_accuracy(scores, targets)
@@ -231,7 +214,10 @@ def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_
                                                                       acc=accs))
 
 
-def validate(val_loader, encoder, decoder, criterion):
+def validate(val_loader,
+             #  encoder,
+             decoder,
+             criterion):
     """
     Performs one epoch's validation.
 
@@ -242,8 +228,8 @@ def validate(val_loader, encoder, decoder, criterion):
     :return: BLEU-4 score
     """
     decoder.eval()  # eval mode (no dropout or batchnorm)
-    if encoder is not None:
-        encoder.eval()
+    # if encoder is not None:
+    #     encoder.eval()
 
     batch_time = AverageMeter()
     losses = AverageMeter()
@@ -255,17 +241,18 @@ def validate(val_loader, encoder, decoder, criterion):
     # solves the issue #57
     with torch.no_grad():
         # Batches
-        for i, (imgs, tags) in enumerate(val_loader):
+        for i, (bottlenecks, tags) in enumerate(val_loader):
 
             # Move to device, if available
-            imgs = imgs.to(device)
+            # imgs = imgs.to(device)
+            bottlenecks = bottlenecks.to(device)
             tags = tags.to(device)
 
             # Forward prop.
-            if encoder is not None:
-                imgs = encoder(imgs)
+            # if encoder is not None:
+            #     imgs = encoder(imgs)
 
-            scores = decoder(imgs)
+            scores = decoder(bottlenecks)
             targets = tags
 
             # Calculate loss
