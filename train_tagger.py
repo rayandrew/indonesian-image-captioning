@@ -75,13 +75,9 @@ def main():
     criterion = nn.BCELoss().to(device)
 
     # Custom dataloaders
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
-
     train_loader = torch.utils.data.DataLoader(
         TaggerDataset(data_folder, data_name, 'TRAIN',
-                      tag_size=semantic_size,
-                      transform=transforms.Compose([normalize])),
+                      tag_size=semantic_size),
         batch_size=batch_size,
         shuffle=True,
         num_workers=workers,
@@ -89,8 +85,7 @@ def main():
 
     val_loader = torch.utils.data.DataLoader(
         TaggerDataset(data_folder, data_name, 'VAL',
-                      tag_size=semantic_size,
-                      transform=transforms.Compose([normalize])),
+                      tag_size=semantic_size),
         batch_size=batch_size,
         shuffle=True,
         num_workers=workers,
