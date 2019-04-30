@@ -69,7 +69,7 @@ class SCNDataset(Dataset):
         # Open hdf5 file where tags are stored
         self.t = h5py.File(os.path.join(
             data_folder, self.split + '_SCN_TAG_PROBS_' + data_name + '.hdf5'), 'r')
-        self.tags = self.b['probs']
+        self.tags = self.t['probs']
 
         # Load encoded captions (completely into memory)
         with open(os.path.join(data_folder, self.split + '_CAPTIONS_' + data_name + '.json'), 'r') as j:
