@@ -440,7 +440,7 @@ class DecoderWithAttention(nn.Module):
         c = self.init_c(mean_encoder_out)
         return h, c
 
-    def forward(self, encoder_out, encoded_captions, tag_input, caption_lengths):
+    def forward(self, encoder_out, tag_input, encoded_captions, caption_lengths):
         """
         Forward propagation.
 

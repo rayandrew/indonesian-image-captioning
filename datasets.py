@@ -66,6 +66,11 @@ class SCNDataset(Dataset):
             data_folder, self.split + '_SCN_BOTTLENECK_' + data_name + '.hdf5'), 'r')
         self.bottlenecks = self.b['bottlenecks']
 
+        # Open hdf5 file where tags are stored
+        self.t = h5py.File(os.path.join(
+            data_folder, self.split + '_SCN_TAG_PROBS_' + data_name + '.hdf5'), 'r')
+        self.tags = self.b['probs']
+
         # Load encoded captions (completely into memory)
         with open(os.path.join(data_folder, self.split + '_CAPTIONS_' + data_name + '.json'), 'r') as j:
             self.captions = json.load(j)
@@ -86,13 +91,15 @@ class SCNDataset(Dataset):
 
         caplen = torch.LongTensor([self.caplens[i]])
 
+        tag = torch.LongTensor(self.tags[i])
+
         if self.split is 'TRAIN':
-            return bottleneck, caption, caplen
+            return bottleneck, tag, caption, caplen
         else:
             # For validation of testing, also return all 'captions_per_image' captions to find BLEU-4 score
             all_captions = torch.LongTensor(
                 self.captions[((i // 5) * 5):(((i // 5) * 5) + 5)])
-            return bottleneck, caption, caplen, all_captions
+            return bottleneck, tag, caption, caplen, all_captions
 
     def __len__(self):
         return self.dataset_size

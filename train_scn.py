@@ -31,8 +31,6 @@ attention_dim = 512  # dimension of attention linear layers
 decoder_dim = 512  # dimension of decoder RNN
 semantic_size = 1000  # dimension of tag vocabs
 
-bottleneck_size = 2048
-
 dropout = 0.5
 # sets device for model and PyTorch tensors
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -176,17 +174,18 @@ def train(train_loader,
     start = time.time()
 
     # Batches
-    for i, (bottlenecks, caps, caplens) in enumerate(train_loader):
+    for i, (bottlenecks, tags, caps, caplens) in enumerate(train_loader):
         data_time.update(time.time() - start)
 
         # Move to GPU, if available
         bottlenecks = bottlenecks.to(device)
         caps = caps.to(device)
         caplens = caplens.to(device)
+        tags = tags.to(device)
 
         # Forward prop.
         scores, caps_sorted, decode_lengths, alphas, sort_ind = decoder(
-            bottlenecks, caps, caplens)
+            bottlenecks, tags, caps, caplens)
 
         # Since we decoded starting with <start>, the targets are all words after <start>, up to <end>
         targets = caps_sorted[:, 1:]
@@ -259,16 +258,17 @@ def validate(val_loader, decoder, criterion):
     # solves the issue #57
     with torch.no_grad():
         # Batches
-        for i, (bottlenecks, caps, caplens, allcaps) in enumerate(val_loader):
+        for i, (bottlenecks, tags, caps, caplens, allcaps) in enumerate(val_loader):
 
             # Move to device, if available
             bottlenecks = bottlenecks.to(device)
             caps = caps.to(device)
             caplens = caplens.to(device)
+            tags = tags.to(device)
 
             # Forward prop.
             scores, caps_sorted, decode_lengths, alphas, sort_ind = decoder(
-                bottlenecks, caps, caplens)
+                bottlenecks, tags, caps, caplens)
 
             # Since we decoded starting with <start>, the targets are all words after <start>, up to <end>
             targets = caps_sorted[:, 1:]
