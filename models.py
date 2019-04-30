@@ -327,7 +327,7 @@ class SCNCell(nn.Module):
     def reset_parameters(self):
         stdv = 1.0 / math.sqrt(self.hidden_size)
         for weight in self.parameters():
-            torch.init.uniform_(weight, -stdv, stdv)
+            torch.nn.init.uniform_(weight, -stdv, stdv)
 
     def extra_repr(self):
         s = '{input_size}, {hidden_size}'
