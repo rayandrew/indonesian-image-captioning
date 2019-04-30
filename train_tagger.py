@@ -23,7 +23,7 @@ data_name = 'flickr10k_5_cap_per_img_5_min_word_freq'
 # Model parameters
 bottleneck_size = 2048
 semantic_size = 1000
-dropout = 0.5
+dropout = 0.15
 # sets device for model and PyTorch tensors
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
