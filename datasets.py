@@ -51,7 +51,7 @@ class SCNDataset(Dataset):
     A PyTorch SCN Dataset class to be used in a PyTorch DataLoader to create batches.
     """
 
-    def __init__(self, data_folder, data_name, split, transform=None):
+    def __init__(self, data_folder, data_name, split):
         """
         :param data_folder: folder where data files are stored
         :param data_name: base name of processed datasets
@@ -75,9 +75,6 @@ class SCNDataset(Dataset):
         with open(os.path.join(data_folder, self.split + '_CAPLENS_' + data_name + '.json'), 'r') as j:
             self.caplens = json.load(j)
             j.close()
-
-        # PyTorch transformation pipeline for the image (normalizing, etc.)
-        self.transform = transform
 
         # Total number of datapoints
         self.dataset_size = len(self.captions)
@@ -147,12 +144,11 @@ class TaggerDataset(Dataset):
     A PyTorch Tagger Dataset class to be used in a PyTorch DataLoader to create batches.
     """
 
-    def __init__(self, data_folder, data_name, split, tag_size, transform=None):
+    def __init__(self, data_folder, data_name, split, tag_size):
         """
         :param data_folder: folder where data files are stored
         :param data_name: base name of processed datasets
         :param split: split, one of 'TRAIN', 'VAL', or 'TEST'
-        :param transform: image transform pipeline
         """
         self.split = split
         assert self.split in {'TRAIN', 'VAL', 'TEST'}
@@ -169,9 +165,6 @@ class TaggerDataset(Dataset):
         self.t = h5py.File(os.path.join(
             data_folder, self.split + '_TAGS_' + data_name + '.hdf5'), 'r')
         self.tags = self.t['tags']
-
-        # PyTorch transformation pipeline for the image (normalizing, etc.)
-        self.transform = transform
 
         # Total number of datapoints
         self.dataset_size = len(self.tags)
