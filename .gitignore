@@ -148,3 +148,6 @@ graph
 scn_data
 dataset
 dataset_bak
+*.tar
+*.jpg
+*.bak

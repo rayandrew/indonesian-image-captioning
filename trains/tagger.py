@@ -7,10 +7,12 @@ import torchvision.transforms as transforms
 from torch import nn
 from torch.nn.utils.rnn import pack_padded_sequence
 
-from models import EncoderTagger, ImageTagger
+from models.encoder.tagger import EncoderTagger
+from models.tagger import ImageTagger
 
 from datasets import TaggerDataset
 
+from utils.device import get_device
 from utils.checkpoint import save_tagger_checkpoint_without_encoder
 from utils.metric import AverageMeter, binary_accuracy
 from utils.optimizer import clip_gradient, adjust_learning_rate
@@ -24,8 +26,9 @@ data_name = 'flickr10k_5_cap_per_img_5_min_word_freq'
 bottleneck_size = 2048
 semantic_size = 1000
 dropout = 0.15
+
 # sets device for model and PyTorch tensors
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = get_device()
 # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
 cudnn.benchmark = True
 
@@ -51,7 +54,7 @@ def main():
 
     global best_acc, epochs_since_improvement, checkpoint, start_epoch, data_name
 
-    print('Running on device {}\n'.format(device))
+    print('Running on device {}'.format(device))
 
     # Initialize / load checkpoint
     if checkpoint is None:

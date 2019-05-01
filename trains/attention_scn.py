@@ -9,7 +9,7 @@ import torchvision.transforms as transforms
 from torch import nn
 from torch.nn.utils.rnn import pack_padded_sequence
 
-from models import EncoderTagger, EncoderSCN, DecoderWithAttention, ImageTagger
+from models.decoder.attention_scn import AttentionSCN
 
 from datasets import SCNDataset
 
@@ -64,7 +64,7 @@ def main():
 
     global best_bleu4, epochs_since_improvement, checkpoint, start_epoch, fine_tune_encoder_scn, fine_tune_encoder_tagger, data_name, word_map
 
-    print('Running on device {}\n'.format(device))
+    print('Running on device {}'.format(device))
 
     # Read word map
     word_map_file = os.path.join(data_folder, 'WORDMAP_' + data_name + '.json')
@@ -73,13 +73,13 @@ def main():
 
     # Initialize / load checkpoint
     if checkpoint is None:
-        decoder = DecoderWithAttention(attention_dim=attention_dim,
-                                       factored_dim=512,
-                                       semantic_dim=semantic_size,
-                                       embed_dim=emb_dim,
-                                       decoder_dim=decoder_dim,
-                                       vocab_size=len(word_map),
-                                       dropout=dropout)
+        decoder = AttentionSCN(attention_dim=attention_dim,
+                               factored_dim=512,
+                               semantic_dim=semantic_size,
+                               embed_dim=emb_dim,
+                               decoder_dim=decoder_dim,
+                               vocab_size=len(word_map),
+                               dropout=dropout)
         decoder_optimizer = torch.optim.Adam(params=filter(lambda p: p.requires_grad, decoder.parameters()),
                                              lr=decoder_lr)
 
