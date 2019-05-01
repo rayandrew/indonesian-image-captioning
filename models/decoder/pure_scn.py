@@ -81,9 +81,9 @@ class PureSCN(nn.Module):
         :param encoder_out: encoded images, a tensor of dimension (batch_size, num_pixels, encoder_dim)
         :return: hidden state, cell state
         """
-        mean_encoder_out = encoder_out.mean(dim=1)
-        h = self.init_h(mean_encoder_out)  # (batch_size, decoder_dim)
-        c = self.init_c(mean_encoder_out)
+        # mean_encoder_out = encoder_out.mean(dim=1)
+        h = self.init_h(encoder_out)  # (batch_size, decoder_dim)
+        c = self.init_c(encoder_out)
         return h, c
 
     def forward(self, encoder_out, tag_input, encoded_captions, caption_lengths):

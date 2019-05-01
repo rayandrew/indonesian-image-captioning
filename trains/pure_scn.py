@@ -50,7 +50,6 @@ workers = 1  # for data-loading; right now, only 1 works with h5py
 decoder_lr = 4e-4  # learning rate for decoder scn
 
 grad_clip = 5.  # clip gradients at an absolute value of
-alpha_c = 1.  # regularization parameter for 'doubly stochastic attention', as in the paper
 best_bleu4 = 0.  # BLEU-4 score right now
 print_freq = 100  # print training/validation stats every __ batches
 fine_tune_encoder_scn = False  # fine-tune encoder scn?
@@ -185,7 +184,7 @@ def train(train_loader,
         tags = tags.to(device)
 
         # Forward prop.
-        scores, caps_sorted, decode_lengths, alphas, sort_ind = decoder(
+        scores, caps_sorted, decode_lengths, sort_ind = decoder(
             bottlenecks, tags, caps, caplens)
 
         # Since we decoded starting with <start>, the targets are all words after <start>, up to <end>
@@ -200,9 +199,6 @@ def train(train_loader,
 
         # Calculate loss
         loss = criterion(scores, targets)
-
-        # Add doubly stochastic attention regularization
-        loss += alpha_c * ((1. - alphas.sum(dim=1)) ** 2).mean()
 
         # Back prop.
         decoder_optimizer.zero_grad()
@@ -268,7 +264,7 @@ def validate(val_loader, decoder, criterion):
             tags = tags.to(device)
 
             # Forward prop.
-            scores, caps_sorted, decode_lengths, alphas, sort_ind = decoder(
+            scores, caps_sorted, decode_lengths, sort_ind = decoder(
                 bottlenecks, tags, caps, caplens)
 
             # Since we decoded starting with <start>, the targets are all words after <start>, up to <end>
@@ -284,9 +280,6 @@ def validate(val_loader, decoder, criterion):
 
             # Calculate loss
             loss = criterion(scores, targets)
-
-            # Add doubly stochastic attention regularization
-            loss += alpha_c * ((1. - alphas.sum(dim=1)) ** 2).mean()
 
             # Keep track of metrics
             losses.update(loss.item(), sum(decode_lengths))
