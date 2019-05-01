@@ -2,6 +2,8 @@ import time
 import os
 import json
 
+import neptune
+
 import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
@@ -27,10 +29,8 @@ data_name = 'flickr10k_5_cap_per_img_5_min_word_freq'
 
 # Model parameters
 emb_dim = 512  # dimension of word embeddings
-factored_dim = 512  # dimension of factor
 attention_dim = 512  # dimension of attention linear layers
 decoder_dim = 512  # dimension of decoder RNN
-semantic_size = 1000  # dimension of tag vocabs
 
 dropout = 0.5
 # sets device for model and PyTorch tensors
@@ -44,6 +44,7 @@ start_epoch = 0
 epochs = 8
 # keeps track of number of epochs since there's been an improvement in validation BLEU
 epochs_since_improvement = 0
+adjust_lr_after_epoch = 4
 batch_size = 32
 workers = 1  # for data-loading; right now, only 1 works with h5py
 
@@ -58,7 +59,7 @@ fine_tune_encoder_tagger = False  # fine-tune encoder tagger?
 checkpoint = None  # path to checkpoint, None if none
 
 
-def main():
+def main(args):
     """
     Training and validation.
     """
@@ -66,6 +67,29 @@ def main():
     global best_bleu4, epochs_since_improvement, checkpoint, start_epoch, fine_tune_encoder_scn, fine_tune_encoder_tagger, data_name, word_map
 
     print('Running on device {}'.format(device))
+
+    print('Initializing neptune-ml')
+
+    neptune.init(api_token=args.neptune_key,
+                 project_qualified_name=args.neptune_user + '/' + args.type)
+
+    experiment = neptune.create_experiment(params={
+        'epochs': epochs,
+        'batch_size': batch_size,
+        'emb_dim': emb_dim,
+        'attention_dim': attention_dim,
+        'decoder_dim': decoder_dim,
+        'workers': workers,
+        'decoder_lr': decoder_lr,
+        'alpha_c': alpha_c,
+        'grad_clip': grad_clip,
+        'adjust_lr_after_epoch': adjust_lr_after_epoch
+    })
+
+    experiment.append_tag('resnet152')
+    experiment.append_tag('pure_attention')
+    experiment.append_tag('indonesian')
+    experiment.append_tag('image_caption')
 
     # Read word map
     word_map_file = os.path.join(data_folder, 'WORDMAP_' + data_name + '.json')
@@ -104,14 +128,16 @@ def main():
         SCNDataset(data_folder, data_name, 'VAL'),
         batch_size=batch_size, shuffle=True, num_workers=workers, pin_memory=True)
 
+    print('Start Training')
+
     # Epochs
     for epoch in range(start_epoch, epochs):
         print('Current epoch {}\n'.format(epoch + 1))
 
-        # Decay learning rate if there is no improvement for 8 consecutive epochs, and terminate training after 20
+        # Decay learning rate if there is no improvement for [adjust_lr_after_epoch] consecutive epochs, and terminate training after 20
         if epochs_since_improvement == 20:
             break
-        if epochs_since_improvement > 0 and epochs_since_improvement % 8 == 0:
+        if epochs_since_improvement > 0 and epochs_since_improvement % adjust_lr_after_epoch == 0:
             adjust_learning_rate(decoder_optimizer, 0.8)
 
         # One epoch's training
@@ -125,6 +151,8 @@ def main():
         recent_bleu4 = validate(val_loader=val_loader,
                                 decoder=decoder,
                                 criterion=criterion)
+
+        neptune.send_metric('recent_bleu4', epoch, recent_bleu4)
 
         # Check if there was an improvement
         is_best = recent_bleu4 > best_bleu4
@@ -147,6 +175,8 @@ def main():
                                                 decoder_optimizer,
                                                 recent_bleu4,
                                                 is_best)
+
+    neptune.stop()
 
 
 def train(train_loader,
@@ -218,6 +248,9 @@ def train(train_loader,
         losses.update(loss.item(), sum(decode_lengths))
         top5accs.update(top5, sum(decode_lengths))
         batch_time.update(time.time() - start)
+
+        neptune.send_metric('batch_train_accuracy', i, top5accs.val)
+        neptune.send_metric('batch_train_loss', i, losses.val)
 
         start = time.time()
 
@@ -291,6 +324,9 @@ def validate(val_loader, decoder, criterion):
             top5accs.update(top5, sum(decode_lengths))
             batch_time.update(time.time() - start)
 
+            neptune.send_metric('batch_val_accuracy', i, top5accs.val)
+            neptune.send_metric('batch_val_loss', i, losses.val)
+
             start = time.time()
 
             if i % print_freq == 0:
@@ -335,7 +371,3 @@ def validate(val_loader, decoder, criterion):
                 bleu=bleu4))
 
     return bleu4
-
-
-if __name__ == '__main__':
-    main()

@@ -1,5 +1,7 @@
 import time
 
+import neptune
+
 import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
@@ -38,6 +40,7 @@ start_epoch = 0
 epochs = 8
 # keeps track of number of epochs since there's been an improvement in validation BLEU
 epochs_since_improvement = 0
+adjust_lr_after_epoch = 4
 batch_size = 32
 workers = 1  # for data-loading; right now, only 1 works with h5py
 decoder_lr = 1e-4  # learning rate for encoder if fine-tuning
@@ -47,7 +50,7 @@ print_freq = 100  # print training/validation stats every __ batches
 checkpoint = None  # path to checkpoint, None if none
 
 
-def main():
+def main(args):
     """
     Training and validation.
     """
@@ -55,6 +58,28 @@ def main():
     global best_acc, epochs_since_improvement, checkpoint, start_epoch, data_name
 
     print('Running on device {}'.format(device))
+
+    print('Initializing neptune-ml')
+
+    neptune.init(api_token=args.neptune_key,
+                 project_qualified_name=args.neptune_user + '/' + args.type)
+
+    experiment = neptune.create_experiment(params={
+        'epochs': epochs,
+        'batch_size': batch_size,
+        'bottleneck_size': bottleneck_size,
+        'semantic_size': semantic_size,
+        'dropout': dropout,
+        'device': device,
+        'workers': workers,
+        'decoder_lr': decoder_lr,
+        'grad_clip': grad_clip,
+        'adjust_lr_after_epoch': adjust_lr_after_epoch
+    })
+
+    experiment.append_tag('resnet152')
+    experiment.append_tag('image_tagger')
+    experiment.append_tag('indonesian')
 
     # Initialize / load checkpoint
     if checkpoint is None:
@@ -106,18 +131,17 @@ def main():
 
         # One epoch's training
         train(train_loader=train_loader,
-              #   encoder=encoder,
               decoder=decoder,
               criterion=criterion,
-              #   encoder_optimizer=encoder_optimizer,
               decoder_optimizer=decoder_optimizer,
               epoch=epoch)
 
         # One epoch's validation
         acc = validate(val_loader=val_loader,
-                       #    encoder=encoder,
                        decoder=decoder,
                        criterion=criterion)
+
+        neptune.send_metric('epoch_acc', epoch, acc)
 
         # Check if there was an improvement
         is_best = acc.avg > best_acc
@@ -135,28 +159,25 @@ def main():
         save_tagger_checkpoint_without_encoder(data_name, epoch, epochs_since_improvement, decoder,
                                                decoder_optimizer, acc, is_best)
 
+    neptune.stop()
+
 
 def train(train_loader,
-          #   encoder,
           decoder,
           criterion,
-          #   encoder_optimizer,
           decoder_optimizer,
           epoch):
     """
     Performs one epoch's training.
 
     :param train_loader: DataLoader for training data
-    :param encoder: encoder model
     :param decoder: decoder model
     :param criterion: loss layer
-    :param encoder_optimizer: optimizer to update encoder's weights (if fine-tuning)
     :param decoder_optimizer: optimizer to update decoder's weights
     :param epoch: epoch number
     """
 
-    # decoder.train()  # train mode (dropout and batchnorm is used)
-    # encoder.train()
+    decoder.train()  # train mode (dropout and batchnorm is used)
 
     batch_time = AverageMeter()  # forward prop. + back prop. time
     data_time = AverageMeter()  # data loading time
@@ -198,6 +219,9 @@ def train(train_loader,
         accs.update(acc)
         batch_time.update(time.time() - start)
 
+        neptune.send_metric('batch_train_accuracy', i, accs.val)
+        neptune.send_metric('batch_train_loss', i, losses.val)
+
         start = time.time()
 
         # Print status
@@ -213,21 +237,18 @@ def train(train_loader,
 
 
 def validate(val_loader,
-             #  encoder,
              decoder,
              criterion):
     """
     Performs one epoch's validation.
 
     :param val_loader: DataLoader for validation data.
-    :param encoder: encoder model
     :param decoder: decoder model
     :param criterion: loss layer
     :return: BLEU-4 score
     """
+
     decoder.eval()  # eval mode (no dropout or batchnorm)
-    # if encoder is not None:
-    #     encoder.eval()
 
     batch_time = AverageMeter()
     losses = AverageMeter()
@@ -242,13 +263,8 @@ def validate(val_loader,
         for i, (bottlenecks, tags) in enumerate(val_loader):
 
             # Move to device, if available
-            # imgs = imgs.to(device)
             bottlenecks = bottlenecks.to(device)
             tags = tags.to(device)
-
-            # Forward prop.
-            # if encoder is not None:
-            #     imgs = encoder(imgs)
 
             scores = decoder(bottlenecks)
             targets = tags
@@ -261,6 +277,9 @@ def validate(val_loader,
             top = binary_accuracy(scores, targets)
             accs.update(top)
             batch_time.update(time.time() - start)
+
+            neptune.send_metric('batch_val_accuracy', i, accs.val)
+            neptune.send_metric('batch_val_loss', i, losses.val)
 
             start = time.time()
 
