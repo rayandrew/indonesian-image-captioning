@@ -64,18 +64,19 @@ def main(args):
     neptune.init(api_token=args.neptune_key,
                  project_qualified_name=args.neptune_user + '/' + args.type)
 
-    experiment = neptune.create_experiment(params={
-        'epochs': epochs,
-        'batch_size': batch_size,
-        'bottleneck_size': bottleneck_size,
-        'semantic_size': semantic_size,
-        'dropout': dropout,
-        'device': device,
-        'workers': workers,
-        'decoder_lr': decoder_lr,
-        'grad_clip': grad_clip,
-        'adjust_lr_after_epoch': adjust_lr_after_epoch
-    })
+    experiment = neptune.create_experiment(name=args.type,
+                                           params={
+                                               'epochs': epochs,
+                                               'batch_size': batch_size,
+                                               'bottleneck_size': bottleneck_size,
+                                               'semantic_size': semantic_size,
+                                               'dropout': dropout,
+                                               'device': device,
+                                               'workers': workers,
+                                               'decoder_lr': decoder_lr,
+                                               'grad_clip': grad_clip,
+                                               'adjust_lr_after_epoch': adjust_lr_after_epoch
+                                           })
 
     experiment.append_tag('resnet152')
     experiment.append_tag('image_tagger')
@@ -141,7 +142,7 @@ def main(args):
                        decoder=decoder,
                        criterion=criterion)
 
-        neptune.send_metric('epoch_acc', epoch, acc)
+        neptune.send_metric('epoch_acc', epoch, acc.val)
 
         # Check if there was an improvement
         is_best = acc.avg > best_acc
@@ -296,7 +297,3 @@ def validate(val_loader,
                 acc=accs))
 
     return accs
-
-
-if __name__ == '__main__':
-    main()

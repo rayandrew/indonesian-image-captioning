@@ -73,18 +73,19 @@ def main(args):
     neptune.init(api_token=args.neptune_key,
                  project_qualified_name=args.neptune_user + '/' + args.type)
 
-    experiment = neptune.create_experiment(params={
-        'epochs': epochs,
-        'batch_size': batch_size,
-        'emb_dim': emb_dim,
-        'attention_dim': attention_dim,
-        'decoder_dim': decoder_dim,
-        'workers': workers,
-        'decoder_lr': decoder_lr,
-        'alpha_c': alpha_c,
-        'grad_clip': grad_clip,
-        'adjust_lr_after_epoch': adjust_lr_after_epoch
-    })
+    experiment = neptune.create_experiment(name=args.type,
+                                           params={
+                                               'epochs': epochs,
+                                               'batch_size': batch_size,
+                                               'emb_dim': emb_dim,
+                                               'attention_dim': attention_dim,
+                                               'decoder_dim': decoder_dim,
+                                               'workers': workers,
+                                               'decoder_lr': decoder_lr,
+                                               'alpha_c': alpha_c,
+                                               'grad_clip': grad_clip,
+                                               'adjust_lr_after_epoch': adjust_lr_after_epoch
+                                           })
 
     experiment.append_tag('resnet152')
     experiment.append_tag('pure_attention')
