@@ -43,9 +43,7 @@ class PureSCN(nn.Module):
         self.init_h = nn.Linear(encoder_dim, decoder_dim)
         # linear layer to find initial cell state of LSTMCell
         self.init_c = nn.Linear(encoder_dim, decoder_dim)
-        # linear layer to create a sigmoid-activated gate
-        self.f_beta = nn.Linear(decoder_dim, encoder_dim)
-        self.sigmoid = nn.Sigmoid()
+
         # linear layer to find scores over vocabulary
         self.fc = nn.Linear(decoder_dim, vocab_size)
 
@@ -134,8 +132,7 @@ class PureSCN(nn.Module):
             batch_size_t = sum([l > t for l in decode_lengths])
 
             # gating scalar, (batch_size_t, encoder_dim)
-            gate = self.sigmoid(self.f_beta(h[:batch_size_t]))
-            encoding = gate * encoder_out[:batch_size_t]
+            encoding = encoder_out[:batch_size_t]
 
             h, c = self.decode_step(
                 torch.cat([embeddings[:batch_size_t, t, :],

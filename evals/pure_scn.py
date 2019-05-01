@@ -2,8 +2,6 @@ import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 
-from models.encoder.caption import EncoderCaption
-
 from datasets.scn import SCNDataset
 from utils.device import get_device
 

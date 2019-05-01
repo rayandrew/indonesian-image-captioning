@@ -19,7 +19,7 @@ from utils.device import get_device
 device = get_device()
 
 
-def caption_image_beam_search(encoder_img, encoder_tagger, decoder_tagger, decoder_scn, image_path, tag_map, word_map, beam_size=3):
+def caption_image_beam_search(encoder, decoder_tagger, decoder_scn, image_path, tag_map, word_map, beam_size=3):
     """
     Reads an image and captions it with beam search.
 
@@ -51,12 +51,11 @@ def caption_image_beam_search(encoder_img, encoder_tagger, decoder_tagger, decod
     # Encode
     image = image.unsqueeze(0)  # (1, 3, 256, 256)
     # (1, enc_image_size, enc_image_size, encoder_dim)
-    encoder_out = encoder_img(image)
+    encoder_out = encoder(image)
     enc_image_size = encoder_out.size(1)
     encoder_dim = encoder_out.size(3)
 
-    encoder_tag_out = encoder_tagger(image)
-    tag = decoder_tagger(encoder_tag_out).to(device)
+    tag = decoder_tagger(encoder_out).to(device)
 
     # Flatten tags
     semantic_size = tag.size(1)
@@ -164,15 +163,15 @@ def main(args):
     print('[(S)emantic (C)ompositional (N)ets] - Generate Caption')
 
     # Load model
-    encoder_img = EncoderCaption()
-    encoder_img.fine_tune(False)
-    encoder_img = encoder_img.to(device)
-    encoder_img.eval()
+    # encoder_img = EncoderCaption()
+    # encoder_img.fine_tune(False)
+    # encoder_img = encoder_img.to(device)
+    # encoder_img.eval()
 
-    encoder_tagger = EncoderTagger()
-    encoder_tagger.fine_tune(False)
-    encoder_tagger = encoder_tagger.to(device)
-    encoder_tagger.eval()
+    encoder = EncoderTagger()
+    encoder.fine_tune(False)
+    encoder = encoder.to(device)
+    encoder.eval()
 
     checkpoint_tagger = torch.load(args.model_tagger)
     decoder_tagger = checkpoint_tagger['decoder']
@@ -198,4 +197,4 @@ def main(args):
 
     # Encode, decode with attention and beam search
     seq = caption_image_beam_search(
-        encoder_img, encoder_tagger, decoder_tagger, decoder_scn, args.img, tag_map, word_map, args.beam_size)
+        encoder, decoder_tagger, decoder_scn, args.img, tag_map, word_map, args.beam_size)
