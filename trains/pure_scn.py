@@ -41,7 +41,7 @@ cudnn.benchmark = True
 # Training parameters
 start_epoch = 0
 # number of epochs to train for (if early stopping is not triggered)
-epochs = 32
+epochs = 8
 # keeps track of number of epochs since there's been an improvement in validation BLEU
 epochs_since_improvement = 0
 batch_size = 32
@@ -99,10 +99,10 @@ def main():
 
     # Custom dataloaders
     train_loader = torch.utils.data.DataLoader(
-        SCNDataset(data_folder, data_name, 'TRAIN'),
+        SCNDataset(data_folder, data_name, 'TRAIN', pure_scn=True),
         batch_size=batch_size, shuffle=True, num_workers=workers, pin_memory=True)
     val_loader = torch.utils.data.DataLoader(
-        SCNDataset(data_folder, data_name, 'VAL'),
+        SCNDataset(data_folder, data_name, 'VAL', pure_scn=True),
         batch_size=batch_size, shuffle=True, num_workers=workers, pin_memory=True)
 
     # Epochs

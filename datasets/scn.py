@@ -11,7 +11,7 @@ class SCNDataset(Dataset):
     A PyTorch SCN Dataset class to be used in a PyTorch DataLoader to create batches.
     """
 
-    def __init__(self, data_folder, data_name, split, cpi=5):
+    def __init__(self, data_folder, data_name, split, pure_scn=False, cpi=5):
         """
         :param data_folder: folder where data files are stored
         :param data_name: base name of processed datasets
@@ -22,9 +22,14 @@ class SCNDataset(Dataset):
         assert self.split in {'TRAIN', 'VAL', 'TEST'}
 
         # Open hdf5 file where images are stored
-        self.b = h5py.File(os.path.join(
-            data_folder, self.split + '_SCN_BOTTLENECK_' + data_name + '.hdf5'), 'r')
-        self.bottlenecks = self.b['bottlenecks']
+        if pure_scn:
+            self.b = h5py.File(os.path.join(
+                data_folder, self.split + '_TAG_BOTTLENECK_' + data_name + '.hdf5'), 'r')
+            self.bottlenecks = self.b['bottlenecks']
+        else:
+            self.b = h5py.File(os.path.join(
+                data_folder, self.split + '_SCN_BOTTLENECK_' + data_name + '.hdf5'), 'r')
+            self.bottlenecks = self.b['bottlenecks']
 
         # Open hdf5 file where tags are stored
         self.t = h5py.File(os.path.join(

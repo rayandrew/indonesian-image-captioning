@@ -49,7 +49,7 @@ def evaluate(beam_size):
 
     # DataLoader
     loader = DataLoader(
-        SCNDataset(data_folder, data_name, 'TEST'),
+        SCNDataset(data_folder, data_name, 'TEST', pure_scn=True),
         batch_size=1, shuffle=True, num_workers=1, pin_memory=True)
 
     # TODO: Batched Beam Search
