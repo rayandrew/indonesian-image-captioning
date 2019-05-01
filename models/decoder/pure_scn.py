@@ -100,10 +100,6 @@ class PureSCN(nn.Module):
         encoder_dim = encoder_out.size(-1)
         vocab_size = self.vocab_size
 
-        # Flatten image
-        # (batch_size, num_pixels, encoder_dim)
-        encoder_out = encoder_out.view(batch_size, -1, encoder_dim)
-
         # Sort input data by decreasing lengths; why? apparent below
         caption_lengths, sort_ind = caption_lengths.squeeze(
             1).sort(dim=0, descending=True)
