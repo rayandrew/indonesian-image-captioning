@@ -11,11 +11,11 @@ if __name__ == '__main__':
                         type=int, help='beam size')
     args = parser.parse_args()
 
-    if args.model == 'pure_scn':
+    if args.model == 'pure-scn':
         score = pure_scn.evaluate(args.beam_size)
-    elif args.model == 'attention_scn':
+    elif args.model == 'attention-scn':
         score = attention_scn.evaluate(args.beam_size)
-    elif args.model == 'pure_attention':
+    elif args.model == 'pure-attention':
         score = pure_attention.evaluate(args.beam_size)
 
     print("\nScore summary @ beam size of % d.\n" %

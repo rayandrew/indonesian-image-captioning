@@ -21,11 +21,11 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if args.type == 'pure_scn':
+    if args.type == 'pure-scn':
         pure_scn.main(args)
-    elif args.type == 'attention_scn':
+    elif args.type == 'attention-scn':
         attention_scn.main(args)
-    elif args.type == 'pure_attention':
+    elif args.type == 'pure-attention':
         pure_attention.main(args)
     else:
         tagger.main(args)
