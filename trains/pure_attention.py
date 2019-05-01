@@ -222,10 +222,13 @@ def train(train_loader,
 
         # Remove timesteps that we didn't decode at, or are pads
         # pack_padded_sequence is an easy trick to do this
-        scores = pack_padded_sequence(
+        padded_scores = pack_padded_sequence(
             scores, decode_lengths, batch_first=True)
-        targets = pack_padded_sequence(
+        padded_targets = pack_padded_sequence(
             targets, decode_lengths, batch_first=True)
+
+        scores = padded_scores.data
+        targets = padded_targets.data
 
         # Calculate loss
         loss = criterion(scores, targets)
