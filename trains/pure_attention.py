@@ -70,7 +70,8 @@ def main(args):
 
     print('Initializing neptune-ml')
 
-    neptune.init(project_qualified_name=args.neptune_user + '/' + args.type)
+    neptune.init(api_token=args.neptune_key,
+                 project_qualified_name=args.neptune_user + '/' + args.type)
 
     experiment = neptune.create_experiment(params={
         'epochs': epochs,
