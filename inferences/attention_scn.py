@@ -216,21 +216,8 @@ def visualize_att(image_path, seq, alphas, rev_tag_map, rev_word_map, smooth=Tru
     plt.show()
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description='[(S)emantic (C)ompositional (N)ets + Attention] - Generate Caption')
-
-    parser.add_argument('--img', '-i', help='path to image')
-    parser.add_argument('--model_tagger', '-mt', help='path to tagger model')
-    parser.add_argument('--model_scn', '-ms', help='path to scn model')
-    parser.add_argument('--tag_map', '-tm', help='path to tag map JSON')
-    parser.add_argument('--word_map', '-wm', help='path to word map JSON')
-    parser.add_argument('--beam_size', '-b', default=5,
-                        type=int, help='beam size for beam search')
-    parser.add_argument('--dont_smooth', dest='smooth',
-                        action='store_false', help='do not smooth alpha overlay')
-
-    args = parser.parse_args()
+def main(args):
+    print('[(S)emantic (C)ompositional (N)ets + Attention] - Generate Caption')
 
     # Load model
     encoder_img = EncoderCaption()
@@ -248,7 +235,7 @@ if __name__ == '__main__':
     decoder_tagger = decoder_tagger.to(device)
     decoder_tagger.eval()
 
-    checkpoint_scn = torch.load(args.model_scn)
+    checkpoint_scn = torch.load(args.model)
     decoder_scn = checkpoint_scn['decoder']
     decoder_scn = decoder_scn.to(device)
     decoder_scn.eval()

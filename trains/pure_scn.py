@@ -11,9 +11,9 @@ from torch.nn.utils.rnn import pack_padded_sequence
 
 from models.decoder.pure_scn import PureSCN
 
-from datasets import SCNDataset
+from datasets.scn import SCNDataset
 
-from utils.checkpoint import save_scn_checkpoint_without_encoder
+from utils.checkpoint import save_caption_checkpoint_without_encoder
 from utils.metric import AverageMeter, accuracy
 from utils.optimizer import clip_gradient, adjust_learning_rate
 
@@ -22,6 +22,7 @@ from nltk.translate.bleu_score import corpus_bleu
 # Data parameters
 data_folder = './scn_data'  # folder with data files saved by create_input_files.py
 # base name shared by data files
+topology_name = 'pure_attention'
 data_name = 'flickr10k_5_cap_per_img_5_min_word_freq'
 
 # Model parameters
@@ -139,13 +140,14 @@ def main():
         print('Saving checkpoint for epoch {}\n'.format(epoch + 1))
 
         # Save checkpoint
-        save_scn_checkpoint_without_encoder(data_name,
-                                            epoch,
-                                            epochs_since_improvement,
-                                            decoder,
-                                            decoder_optimizer,
-                                            recent_bleu4,
-                                            is_best)
+        save_caption_checkpoint_without_encoder(topology_name,
+                                                data_name,
+                                                epoch,
+                                                epochs_since_improvement,
+                                                decoder,
+                                                decoder_optimizer,
+                                                recent_bleu4,
+                                                is_best)
 
 
 def train(train_loader,

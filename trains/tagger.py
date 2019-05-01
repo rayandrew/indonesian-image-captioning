@@ -10,7 +10,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from models.encoder.tagger import EncoderTagger
 from models.tagger import ImageTagger
 
-from datasets import TaggerDataset
+from datasets.tagger import TaggerDataset
 
 from utils.device import get_device
 from utils.checkpoint import save_tagger_checkpoint_without_encoder

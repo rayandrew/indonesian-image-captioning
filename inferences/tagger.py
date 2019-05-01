@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 
-from models import EncoderTagger
+from models.encoder.tagger import EncoderTagger
 
 import numpy as np
 import json
@@ -96,18 +96,11 @@ def visualize_att(image_path, seq, alphas, rev_word_map, smooth=True):
     plt.show()
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description='[(S)emantic (C)ompositional (N)ets] Indonesian Image Tagger')
-
-    parser.add_argument('--img', '-i', help='path to image')
-    parser.add_argument('--model', '-m', help='path to model')
-    parser.add_argument('--tag_map', '-tm', help='path to tag map JSON')
-
-    args = parser.parse_args()
+def main(args):
+    print('[(S)emantic (C)ompositional (N)ets] Indonesian Image Tagger')
 
     # Load model
-    checkpoint = torch.load(args.model)
+    checkpoint = torch.load(args.model_tagger)
     decoder = checkpoint['decoder']
     decoder = decoder.to(device)
     decoder.eval()

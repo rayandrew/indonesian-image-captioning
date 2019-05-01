@@ -160,19 +160,8 @@ def caption_image_beam_search(encoder_img, encoder_tagger, decoder_tagger, decod
     return seq
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description='[(S)emantic (C)ompositional (N)ets] - Generate Caption')
-
-    parser.add_argument('--img', '-i', help='path to image')
-    parser.add_argument('--model_tagger', '-mt', help='path to tagger model')
-    parser.add_argument('--model_scn', '-ms', help='path to scn model')
-    parser.add_argument('--tag_map', '-tm', help='path to tag map JSON')
-    parser.add_argument('--word_map', '-wm', help='path to word map JSON')
-    parser.add_argument('--beam_size', '-b', default=5,
-                        type=int, help='beam size for beam search')
-
-    args = parser.parse_args()
+def main(args):
+    print('[(S)emantic (C)ompositional (N)ets] - Generate Caption')
 
     # Load model
     encoder_img = EncoderCaption()
@@ -190,7 +179,7 @@ if __name__ == '__main__':
     decoder_tagger = decoder_tagger.to(device)
     decoder_tagger.eval()
 
-    checkpoint_scn = torch.load(args.model_scn)
+    checkpoint_scn = torch.load(args.model)
     decoder_scn = checkpoint_scn['decoder']
     decoder_scn = decoder_scn.to(device)
     decoder_scn.eval()

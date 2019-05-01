@@ -6,11 +6,16 @@ import torchvision.transforms as transforms
 import numpy as np
 import h5py
 
-from models import EncoderTagger, EncoderSCN, ImageTagger
-from datasets import TaggerDataset, SCNDataset, TaggerBottleneckDataset, SCNBottleneckDataset
+from models.encoder.caption import EncoderCaption
+from models.encoder.tagger import EncoderTagger
+from models.tagger import ImageTagger
+
+from datasets.scn_bottleneck import SCNBottleneckDataset
+from datasets.tagger_bottleneck import TaggerBottleneckDataset
+from datasets.scn import SCNDataset
+from datasets.tagger import TaggerDataset
 
 from utils.dataset import create_input_files
-
 
 # sets device for model and PyTorch tensors
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

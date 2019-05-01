@@ -67,16 +67,16 @@ def save_tagger_checkpoint_without_encoder(data_name,
         torch.save(state, 'BEST_' + filename)
 
 
-def save_scn_checkpoint(data_name,
-                        epoch,
-                        epochs_since_improvement,
-                        encoder_scn,
-                        encoder_tagger,
-                        decoder,
-                        encoder_scn_optimizer,
-                        encoder_tagger_optimizer,
-                        decoder_optimizer,
-                        bleu4, is_best):
+def save_caption_checkpoint(data_name,
+                            epoch,
+                            epochs_since_improvement,
+                            encoder_scn,
+                            encoder_tagger,
+                            decoder,
+                            encoder_scn_optimizer,
+                            encoder_tagger_optimizer,
+                            decoder_optimizer,
+                            bleu4, is_best):
     """
     Saves model scn checkpoint.
 
@@ -108,19 +108,21 @@ def save_scn_checkpoint(data_name,
         torch.save(state, 'BEST_' + filename)
 
 
-def save_scn_checkpoint_without_encoder(data_name,
-                                        epoch,
-                                        epochs_since_improvement,
-                                        # encoder_scn,
-                                        # encoder_tagger,
-                                        decoder,
-                                        # encoder_scn_optimizer,
-                                        # encoder_tagger_optimizer,
-                                        decoder_optimizer,
-                                        bleu4, is_best):
+def save_caption_checkpoint_without_encoder(topology_name,
+                                            data_name,
+                                            epoch,
+                                            epochs_since_improvement,
+                                            # encoder_scn,
+                                            # encoder_tagger,
+                                            decoder,
+                                            # encoder_scn_optimizer,
+                                            # encoder_tagger_optimizer,
+                                            decoder_optimizer,
+                                            bleu4, is_best):
     """
     Saves model scn checkpoint.
 
+    :param topology_name: topology name of model
     :param data_name: base name of processed dataset
     :param epoch: epoch number
     :param epochs_since_improvement: number of epochs since last improvement in BLEU-4 score
@@ -142,7 +144,7 @@ def save_scn_checkpoint_without_encoder(data_name,
              #  'encoder_scn_optimizer': encoder_scn_optimizer,
              #  'encoder_tagger_optimizer': encoder_tagger_optimizer,
              'decoder_optimizer': decoder_optimizer}
-    filename = 'checkpoint_scn_' + data_name + '.pth.tar'
+    filename = 'checkpoint_' + topology_name + '_' + data_name + '.pth.tar'
     torch.save(state, filename)
     # If this checkpoint is the best so far, store a copy so it doesn't get overwritten by a worse checkpoint
     if is_best:
