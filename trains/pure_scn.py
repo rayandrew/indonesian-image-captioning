@@ -22,7 +22,7 @@ from nltk.translate.bleu_score import corpus_bleu
 # Data parameters
 data_folder = './scn_data'  # folder with data files saved by create_input_files.py
 # base name shared by data files
-topology_name = 'pure_attention'
+topology_name = 'pure_scn'
 data_name = 'flickr10k_5_cap_per_img_5_min_word_freq'
 
 # Model parameters
