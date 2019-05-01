@@ -40,7 +40,7 @@ normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
 
 
 def gen_bottleneck_tagger(semantic_size=1000):
-    encoder = EncoderTagger().to(device)
+    encoder = EncoderTagger()
     encoder.fine_tune(False)
     encoder = encoder.to(device)
     encoder.eval()
@@ -70,7 +70,7 @@ def gen_bottleneck_tagger(semantic_size=1000):
                                                                  shuffle=False,
                                                                  num_workers=workers,
                                                                  pin_memory=True)):
-                imgs = data[0].to(device)
+                imgs = data.to(device)
                 bottlenecks[i:i + len(imgs)] = encoder(imgs).tolist()
 
             h.close()
@@ -105,7 +105,7 @@ def gen_bottleneck_scn():
                                                                  shuffle=False,
                                                                  num_workers=workers,
                                                                  pin_memory=True)):
-                imgs = data[0].to(device)
+                imgs = data.to(device)
                 bottlenecks[i:i + len(imgs)] = encoder(imgs).tolist()
 
             h.close()
