@@ -191,14 +191,18 @@ def evaluate(args):
 
     os.makedirs("./evaluation", exist_ok=True)
 
-    with open('./evaluation/pure-scn-references.json', 'w') as f:
+    with open('./evaluation/pure_scn_beam_{}_references.json'.format(args.beam_size), 'w') as f:
         json.dump(references, f)
         f.close()
 
-    with open('./evaluation/pure-scn-hypotheses.json', 'w') as f:
+    with open('./evaluation/pure_scn_beam_{}_hypotheses.json'.format(args.beam_size), 'w') as f:
         json.dump(hypotheses, f)
         f.close()
 
     scores = n.compute_metrics(ref_list=references, hyp_list=hypotheses)
+
+    with open('./evaluation/pure_scn_beam_{}_scores.json'.format(args.beam_size), 'w') as f:
+        json.dump(scores, f)
+        f.close()
 
     return scores
