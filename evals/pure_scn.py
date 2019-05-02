@@ -110,12 +110,8 @@ def evaluate(args):
             embeddings = decoder.embedding(
                 k_prev_words).squeeze(1)  # (s, embed_dim)
 
-            # gating scalar, (s, encoder_dim)
-            gate = decoder.sigmoid(decoder.f_beta(h))
-            awe = gate * encoder_out
-
             h, c = decoder.decode_step(
-                torch.cat([embeddings, awe], dim=1), tags, (h, c))  # (s, decoder_dim)
+                torch.cat([embeddings, encoder_out], dim=1), tags, (h, c))  # (s, decoder_dim)
 
             scores = decoder.fc(h)  # (s, vocab_size)
             scores = F.log_softmax(scores, dim=1)
