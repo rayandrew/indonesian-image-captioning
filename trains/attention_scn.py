@@ -15,6 +15,7 @@ from models.decoder.attention_scn import AttentionSCN
 
 from datasets.scn import SCNDataset
 
+from utils.device import get_device
 from utils.checkpoint import save_caption_checkpoint_without_encoder
 from utils.metric import AverageMeter, accuracy
 from utils.optimizer import clip_gradient, adjust_learning_rate
@@ -36,7 +37,7 @@ semantic_size = 1000  # dimension of tag vocabs
 
 dropout = 0.5
 # sets device for model and PyTorch tensors
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = get_device()
 # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
 cudnn.benchmark = True
 

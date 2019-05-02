@@ -2,6 +2,8 @@ import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 
+import json
+
 from models.encoder.caption import EncoderCaption
 
 from datasets.scn import SCNDataset
@@ -11,45 +13,45 @@ from nlgeval import NLGEval
 
 from tqdm import tqdm
 
-# Parameters
-data_folder = './scn_data'  # folder with data files saved by create_input_files.py
-# base name shared by data files
-data_name = 'flickr10k_5_cap_per_img_5_min_word_freq'
-# model checkpoint
-checkpoint = 'BEST_checkpoint_pure_attention_flickr10k_5_cap_per_img_5_min_word_freq.pth.tar'
-# word map, ensure it's the same the data was encoded with and the model was trained with
-word_map_file = './scn_data/WORDMAP_flickr10k_5_cap_per_img_5_min_word_freq.json'
+
 # sets device for model and PyTorch tensors
 device = get_device()
 # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
 cudnn.benchmark = True
 
-# Load model
-checkpoint = torch.load(checkpoint)
-decoder = checkpoint['decoder']
-decoder = decoder.to(device)
-decoder.eval()
 
-# Load word map (word2ix)
-with open(word_map_file, 'r') as j:
-    word_map = json.load(j)
-rev_word_map = {v: k for k, v in word_map.items()}
-vocab_size = len(word_map)
-
-
-def evaluate(beam_size):
+def evaluate(args):
     """
     Evaluation
 
-    :param beam_size: beam size at which to generate captions for evaluation
+    :param args: args to generate captions for evaluation
     :return: BLEU-4 score
     """
     # Compute metrics
     n = NLGEval()
 
+    # Load model
+    checkpoint = torch.load(args.model)
+    decoder = checkpoint['decoder']
+    decoder = decoder.to(device)
+    decoder.eval()
+
+    # Load tag map (word2ix)
+    with open(args.tag_map, 'r') as j:
+        tag_map = json.load(j)
+        j.close()
+    rev_tag_map = {v: k for k, v in tag_map.items()}  # ix2word
+
+    # Load word map (word2ix)
+    with open(args.word_map, 'r') as j:
+        word_map = json.load(j)
+        j.close()
+    rev_word_map = {v: k for k, v in word_map.items()}  # ix2word
+    vocab_size = len(word_map)
+
     # DataLoader
     loader = DataLoader(
-        SCNDataset(data_folder, data_name, 'TEST'),
+        SCNDataset(args.data_folder, args.data_name, 'TEST'),
         batch_size=1, shuffle=True, num_workers=1, pin_memory=True)
 
     # TODO: Batched Beam Search
