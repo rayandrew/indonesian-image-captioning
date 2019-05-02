@@ -42,11 +42,11 @@ def caption_image_beam_search(encoder_img, encoder_tagger, decoder_tagger, decod
     img = imresize(img, (256, 256))
     img = img.transpose(2, 0, 1)
     img = img / 255.
-    img = torch.FloatTensor(img).to(device)
+    img = torch.FloatTensor(img)
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
     transform = transforms.Compose([normalize])
-    image = transform(img)  # (3, 256, 256)
+    image = transform(img).to(device)  # (3, 256, 256)
 
     # Encode
     image = image.unsqueeze(0)  # (1, 3, 256, 256)

@@ -42,18 +42,17 @@ def caption_image_beam_search(encoder, decoder_tagger, decoder_scn, image_path, 
     img = imresize(img, (256, 256))
     img = img.transpose(2, 0, 1)
     img = img / 255.
-    img = torch.FloatTensor(img).to(device)
+    img = torch.FloatTensor(img)
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
     transform = transforms.Compose([normalize])
-    image = transform(img)  # (3, 256, 256)
+    image = transform(img).to(device)  # (3, 256, 256)
 
     # Encode
     image = image.unsqueeze(0)  # (1, 3, 256, 256)
     # (1, enc_image_size, enc_image_size, encoder_dim)
     encoder_out = encoder(image)
-    enc_image_size = encoder_out.size(1)
-    encoder_dim = encoder_out.size(3)
+    encoder_dim = encoder_out.size(1)
 
     tag = decoder_tagger(encoder_out).to(device)
 
@@ -62,13 +61,12 @@ def caption_image_beam_search(encoder, decoder_tagger, decoder_scn, image_path, 
     tag = tag.expand(k, semantic_size)
 
     # Flatten encoding
-    # (1, num_pixels, encoder_dim)
-    encoder_out = encoder_out.view(1, -1, encoder_dim)
-    num_pixels = encoder_out.size(1)
+    # (1, encoder_dim)
+    encoder_out = encoder_out.view(1, encoder_dim)
 
     # We'll treat the problem as having a batch size of k
     # (k, num_pixels, encoder_dim)
-    encoder_out = encoder_out.expand(k, num_pixels, encoder_dim)
+    encoder_out = encoder_out.expand(k, encoder_dim)
 
     # Tensor to store top k previous words at each step; now they're just <start>
     k_prev_words = torch.LongTensor(
@@ -95,12 +93,8 @@ def caption_image_beam_search(encoder, decoder_tagger, decoder_scn, image_path, 
         embeddings = decoder_scn.embedding(
             k_prev_words).squeeze(1)  # (s, embed_dim)
 
-        # gating scalar, (s, encoder_dim)
-        gate = decoder_scn.sigmoid(decoder_scn.f_beta(h))
-        awe = gate * encoder_out
-
         h, c = decoder_scn.decode_step(
-            torch.cat([embeddings, awe], dim=1), tag, (h, c))  # (s, decoder_dim)
+            torch.cat([embeddings, encoder_out], dim=1), tag, (h, c))  # (s, decoder_dim)
 
         scores = decoder_scn.fc(h)  # (s, vocab_size)
         scores = F.log_softmax(scores, dim=1)

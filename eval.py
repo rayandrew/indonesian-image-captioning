@@ -4,7 +4,7 @@ from evals import attention_scn, pure_attention, pure_scn
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='[(S)how (A)ttend (T)ell -- Attention] - Generate Caption')
+        description='[(S)how (A)ttend (T)ell -- Attention] - Eval Caption')
 
     parser.add_argument('--type', '-t', help='model type')
     parser.add_argument('--model', '-m', help='pretrained model')

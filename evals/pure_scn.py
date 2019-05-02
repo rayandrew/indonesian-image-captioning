@@ -72,19 +72,16 @@ def evaluate(args):
         tags = tags.to(device)  # (1, 1000)
 
         # Encode
-        # (1, enc_image_size, enc_image_size, encoder_dim)
-        # encoder_out = encoder(image)
-        enc_image_size = encoder_out.size(1)
-        encoder_dim = encoder_out.size(3)
+        # (1, encoder_dim)
+        encoder_dim = encoder_out.size(1)
 
         # Flatten encoding
-        # (1, num_pixels, encoder_dim)
-        encoder_out = encoder_out.view(1, -1, encoder_dim)
-        num_pixels = encoder_out.size(1)
+        # (1, encoder_dim)
+        encoder_out = encoder_out.view(1, encoder_dim)
 
         # We'll treat the problem as having a batch size of k
         # (k, num_pixels, encoder_dim)
-        encoder_out = encoder_out.expand(k, num_pixels, encoder_dim)
+        encoder_out = encoder_out.expand(k, encoder_dim)
 
         # (k, 1000)
         semantic_size = tags.size(1)
