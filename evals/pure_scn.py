@@ -1,3 +1,4 @@
+import torch
 import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
@@ -25,7 +26,7 @@ def evaluate(args):
     :return: BLEU-4 score
     """
     # Compute metrics
-    n = NLGEval()
+    n = NLGEval(no_skipthoughts=True)
 
     # Load model
     checkpoint = torch.load(args.model)
