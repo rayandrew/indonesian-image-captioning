@@ -25,7 +25,7 @@ def evaluate(args):
     """
     Evaluation
 
-    :param beam_size: beam size at which to generate captions for evaluation
+    :param args: args to generate captions for evaluation
     :return: BLEU-4 score
     """
     # Compute metrics
@@ -66,9 +66,9 @@ def evaluate(args):
 
     # For each image
     for i, (bottleneck, _, caps, caplens, allcaps) in enumerate(
-            tqdm(loader, desc="EVALUATING AT BEAM SIZE " + str(beam_size))):
+            tqdm(loader, desc="EVALUATING AT BEAM SIZE " + str(args.beam_size))):
 
-        k = beam_size
+        k = args.beam_size
 
         # Move to GPU device, if available
         encoder_out = bottleneck.to(device)  # (1, 3, 256, 256)
@@ -192,9 +192,3 @@ def evaluate(args):
     scores = n.compute_metrics(ref_list=references, hyp_list=hypotheses)
 
     return scores
-
-
-if __name__ == '__main__':
-    beam_size = 1
-    print("\nScore @ beam size of % d is % s.\n" %
-          (beam_size, evaluate(beam_size)))
