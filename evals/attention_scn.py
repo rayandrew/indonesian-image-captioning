@@ -3,6 +3,7 @@ import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 
+import os
 import json
 
 from models.encoder.caption import EncoderCaption
@@ -200,6 +201,16 @@ def evaluate(args):
     for refs in references_temp:
         for i in range(len(refs)):
             references[i].append(refs[i])
+
+    os.makedirs("./evaluation", exist_ok=True)
+
+    with open('./evaluation/attention-scn-references.json', 'w') as f:
+        json.dump(references, f)
+        f.close()
+
+    with open('./evaluation/attention-scn-hypotheses.json', 'w') as f:
+        json.dump(hypotheses, f)
+        f.close()
 
     scores = n.compute_metrics(ref_list=references, hyp_list=hypotheses)
 
