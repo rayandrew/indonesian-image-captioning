@@ -61,7 +61,7 @@ def evaluate(args):
     # Lists to store references (true captions), and hypothesis (prediction) for each image
     # If for n images, we have n hypotheses, and references a, b, c... for each image, we need -
     # references = [[ref1a, ref1b, ref1c], [ref2a, ref2b], ...], hypotheses = [hyp1, hyp2, ...]
-    references = list()
+    references_temp = list()
     hypotheses = list()
 
     # For each image
@@ -181,13 +181,19 @@ def evaluate(args):
         img_captions = list(
             map(lambda c: ' '.join([rev_word_map[w] for w in c if w not in {word_map['<start>'], word_map['<end>'], word_map['<pad>']}]),
                 img_caps))  # remove <start> and pads
-        references.append(img_captions)
+        references_temp.append(img_captions)
 
-        # Hypotheses
+        # hypotheses
         hypotheses.append(' '.join([rev_word_map[w] for w in seq if w not in {
-                          word_map['<start>'], word_map['<end>'], word_map['<pad>']}]))
+            word_map['<start>'], word_map['<end>'], word_map['<pad>']}]))
 
-        assert len(references) == len(hypotheses)
+        assert len(references_temp) == len(hypotheses)
+
+    references = [[] for x in range(len(references_temp[0]))]
+
+    for refs in references_temp:
+        for i in range(len(refs)):
+            references[i].append(refs[i])
 
     scores = n.compute_metrics(ref_list=references, hyp_list=hypotheses)
 
