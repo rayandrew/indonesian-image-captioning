@@ -28,7 +28,7 @@ class CaptionDataset(Dataset):
 
         self.h = h5py.File(os.path.join(
             data_folder, self.split + '_IMAGES_' + data_name + '.hdf5'), 'r')
-        self.imgs = self.h['bottlenecks']
+        self.imgs = self.h['images']
 
         # Captions per image
         self.cpi = cpi if cpi else self.h.attrs['captions_per_image']
@@ -91,7 +91,7 @@ class TagDataset(Dataset):
 
         self.h = h5py.File(os.path.join(
             data_folder, self.split + '_IMAGES_' + data_name + '.hdf5'), 'r')
-        self.imgs = self.h['bottlenecks']
+        self.imgs = self.h['images']
 
         # Load encoded captions (completely into memory)
         self.t = h5py.File(os.path.join(
