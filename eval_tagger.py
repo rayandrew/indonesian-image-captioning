@@ -54,16 +54,8 @@ def evaluate():
         targets = tags.to(device)  # (1, 1000)
 
         # Encode
-        # encoder_out = encoder(image)  # (1, enc_image_size, enc_image_size, encoder_dim)
         encoder_out = image  # (1, enc_image_size, enc_image_size, encoder_dim)
-        # enc_image_size = encoder_out.size(1)
-        encoder_dim = encoder_out.size(3)
-
-        # Flatten encoding
-        # (1, num_pixels, encoder_dim)
-        encoder_out = encoder_out.view(1, -1, encoder_dim)
-
-        scores = encoder(encoder_out)
+        scores = encoder(encoder_out)  # (1, 1000)
         acc = binary_accuracy(scores, targets)
         accs.append(acc)
 
