@@ -121,7 +121,8 @@ class EncoderTagger(nn.Module):
         Returns 
             torch.Tensor: probabilites of tags (batch_size, 1000)
         """
-        out = self.resnet(images)  # (batch_size, 2048)
+        out = self.resnet(images)
+        out = out.view(out.size(0), -1)   # (batch_size, 2048)
         out = self.dropout(out)    # (batch_size, 2048)
         out = self.linear(out)     # (batch_size, 1000)
         out = self.sigmoid(out)    # (batch_size, 1000)
