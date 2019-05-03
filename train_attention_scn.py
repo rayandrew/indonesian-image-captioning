@@ -75,7 +75,7 @@ def main():
 
     # Initialize / load checkpoint
     tagger_checkpoint = torch.load(tagger_checkpoint)
-    encoder_tagger = checkpoint['encoder']
+    encoder_tagger = tagger_checkpoint['encoder']
     encoder_tagger.fine_tune(False)
 
     if checkpoint is None:
