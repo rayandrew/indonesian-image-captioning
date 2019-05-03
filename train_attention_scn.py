@@ -167,7 +167,7 @@ def main():
         print('Saving checkpoint for epoch {}\n'.format(epoch + 1))
 
         # Save checkpoint
-        save_checkpoint(data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
+        save_checkpoint('attention_scn', data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
                         decoder_optimizer, recent_bleu4, is_best)
 
 

@@ -31,7 +31,7 @@ def split_tensor2d(tensor, split, front=False):
     ]
 
 
-class Encoder(nn.Module):
+class EncoderCaption(nn.Module):
     r"""Image Encoder using ResNet152.
 
     Arguments:
@@ -366,7 +366,7 @@ class SCNCell(nn.Module):
 
         self.reset_parameters()
 
-    def forward(self, wemb_input, tag_input, hx=None):
+    def forward(self, wemb_input, semantic_input, hx=None):
         self.check_forward_input(wemb_input)
 
         [ia_i, ia_f, ia_o, ia_c] = split_tensor2d(
@@ -383,10 +383,10 @@ class SCNCell(nn.Module):
         tmp1_o = (wemb_input @ ia_o)
         tmp1_c = (wemb_input @ ia_c)
 
-        tmp2_i = (tag_input @ ib_i).unsqueeze(0)
-        tmp2_f = (tag_input @ ib_f).unsqueeze(0)
-        tmp2_o = (tag_input @ ib_o).unsqueeze(0)
-        tmp2_c = (tag_input @ ib_c).unsqueeze(0)
+        tmp2_i = (semantic_input @ ib_i).unsqueeze(0)
+        tmp2_f = (semantic_input @ ib_f).unsqueeze(0)
+        tmp2_o = (semantic_input @ ib_o).unsqueeze(0)
+        tmp2_c = (semantic_input @ ib_c).unsqueeze(0)
 
         state_below_i = ((tmp1_i * tmp2_i) @ ic_i.t()) + b_ii
         state_below_f = ((tmp1_f * tmp2_f) @ ic_f.t()) + b_if
@@ -415,9 +415,9 @@ class SCNCell(nn.Module):
         self.check_forward_hidden(x_c, hx[0], '[0]')
         self.check_forward_hidden(x_c, hx[1], '[1]')
 
-        return self.recurrent_step(x_i, x_f, x_o, x_c, tag_input, hx)
+        return self.recurrent_step(x_i, x_f, x_o, x_c, semantic_input, hx)
 
-    def recurrent_step(self, x_i, x_f, x_o, x_c, tag_input, hx):
+    def recurrent_step(self, x_i, x_f, x_o, x_c, semantic_input, hx):
         h_, c_ = hx
 
         [ha_i, ha_f, ha_o, ha_c] = split_tensor2d(
@@ -429,16 +429,16 @@ class SCNCell(nn.Module):
         [b_hi, b_hf, b_ho, b_hc] = split_tensor1d(
             self.bias_hh, self.hidden_size)
 
-        preact_i = (h_ @ ha_i) * (tag_input @ hb_i)
+        preact_i = (h_ @ ha_i) * (semantic_input @ hb_i)
         preact_i = (preact_i @ hc_i.t()) + x_i + b_hi
 
-        preact_f = (h_ @ ha_f) * (tag_input @ hb_f)
+        preact_f = (h_ @ ha_f) * (semantic_input @ hb_f)
         preact_f = (preact_f @ hc_f.t()) + x_f + b_hf
 
-        preact_o = (h_ @ ha_o) * (tag_input @ hb_o)
+        preact_o = (h_ @ ha_o) * (semantic_input @ hb_o)
         preact_o = (preact_o @ hc_o.t()) + x_o + b_ho
 
-        preact_c = (h_ @ ha_c) * (tag_input @ hb_c)
+        preact_c = (h_ @ ha_c) * (semantic_input @ hb_c)
         preact_c = (preact_c @ hc_c.t()) + x_c + b_hc
 
         i = torch.sigmoid(preact_i)
@@ -480,3 +480,150 @@ class SCNCell(nn.Module):
             raise RuntimeError(
                 "hidden{} has inconsistent hidden_size: got {}, expected {}".format(
                     hidden_label, hx.size(1), self.hidden_size))
+
+
+class DecoderSCNWithAttention(nn.Module):
+    r"""Caption Decoder with Semantic Compositional + Attention Networks
+
+    Arguments
+        attention_dim (int): size of attention network
+        embed_dim (int): embedding size
+        decoder_dim (int): size of decoder's RNN
+        factored_dim (int): size of factorization
+        semantic_dim (int): size of tag input
+        vocab_size (int): size of vocabulary
+        encoder_dim (int, optional): feature size of encoded images
+        dropout (float, optional): dropout
+    """
+
+    def __init__(self, attention_dim, embed_dim, decoder_dim, factored_dim, semantic_dim, vocab_size, encoder_dim=2048, dropout=0.5):
+        super(DecoderSCNWithAttention, self).__init__()
+
+        self.attention_dim = attention_dim
+        self.embed_dim = embed_dim
+        self.encoder_dim = encoder_dim
+        self.decoder_dim = decoder_dim
+        self.factored_dim = factored_dim
+        self.semantic_dim = semantic_dim
+        self.vocab_size = vocab_size
+        self.dropout = dropout
+
+        self.attention = Attention(
+            encoder_dim, decoder_dim, attention_dim)  # attention network
+
+        self.embedding = nn.Embedding(vocab_size, embed_dim)  # embedding layer
+        self.dropout = nn.Dropout(p=self.dropout)
+        self.decode_step = SCNCell(
+            embed_dim + encoder_dim, decoder_dim, semantic_dim, factored_dim, bias=True)  # decoding SCNCell
+        # linear layer to find initial hidden state of LSTMCell
+        self.init_h = nn.Linear(encoder_dim, decoder_dim)
+        # linear layer to find initial cell state of LSTMCell
+        self.init_c = nn.Linear(encoder_dim, decoder_dim)
+        # linear layer to create a sigmoid-activated gate
+        self.f_beta = nn.Linear(decoder_dim, encoder_dim)
+        self.sigmoid = nn.Sigmoid()
+        # linear layer to find scores over vocabulary
+        self.fc = nn.Linear(decoder_dim, vocab_size)
+        self.init_weights()  # initialize some layers with the uniform distribution
+
+    def init_weights(self):
+        r"""Initializes some parameters with values from the uniform distribution, for easier convergence.
+        """
+        self.embedding.weight.data.uniform_(-0.1, 0.1)
+        self.fc.bias.data.fill_(0)
+        self.fc.weight.data.uniform_(-0.1, 0.1)
+
+    def load_pretrained_embeddings(self, embeddings):
+        r"""Loads embedding layer with pre-trained embeddings.
+
+        Arguments
+            embeddings (torch.Tensor): pre-trained embeddings
+        """
+        self.embedding.weight = nn.Parameter(embeddings)
+
+    def fine_tune_embeddings(self, fine_tune=True):
+        r"""Allow fine-tuning of embedding layer? (Only makes sense to not-allow if using pre-trained embeddings).
+
+        Arguments
+            fine_tune (boolean): Allow fine tuning?
+        """
+        for p in self.embedding.parameters():
+            p.requires_grad = fine_tune
+
+    def init_hidden_state(self, encoder_out):
+        r"""Creates the initial hidden and cell states for the decoder's LSTM based on the encoded images.
+
+        Arguments
+            encoder_out (torch.Tensor): encoded images, a tensor of dimension (batch_size, num_pixels, encoder_dim)
+        Returns 
+            torch.Tensor: hidden state, cell state
+        """
+        mean_encoder_out = encoder_out.mean(dim=1)
+        h = self.init_h(mean_encoder_out)  # (batch_size, decoder_dim)
+        c = self.init_c(mean_encoder_out)  # (batch_size, decoder_dim)
+        return h, c
+
+    def forward(self, encoder_out, semantic_input, encoded_captions, caption_lengths):
+        r"""Forward propagation.
+
+        Arguments
+            encoder_out (torch.Tensor): encoded images, a tensor of dimension (batch_size, enc_image_size, enc_image_size, encoder_dim)
+            semantic_input (torch.Tensor): encoded tags, a tensor of dimension (batch_size, semantic_size)
+            encoded_caption (torch.Tensor): encoded captions, a tensor of dimension (batch_size, max_caption_length)
+            caption_lengths (torch.Tensor): caption lengths, a tensor of dimension (batch_size, 1)
+        Returns
+            (Tuple of torch.Tensor): scores for vocabulary, sorted encoded captions, decode lengths, weights, sort indices
+        """
+
+        batch_size = encoder_out.size(0)
+        encoder_dim = encoder_out.size(-1)
+        vocab_size = self.vocab_size
+
+        # Flatten image
+        # (batch_size, num_pixels, encoder_dim)
+        encoder_out = encoder_out.view(batch_size, -1, encoder_dim)
+        num_pixels = encoder_out.size(1)
+
+        # Sort input data by decreasing lengths; why? apparent below
+        caption_lengths, sort_ind = caption_lengths.squeeze(
+            1).sort(dim=0, descending=True)
+        encoder_out = encoder_out[sort_ind]
+        encoded_captions = encoded_captions[sort_ind]
+
+        # Embedding
+        # (batch_size, max_caption_length, embed_dim)
+        embeddings = self.embedding(encoded_captions)
+
+        # Initialize LSTM state
+        h, c = self.init_hidden_state(encoder_out)  # (batch_size, decoder_dim)
+
+        # We won't decode at the <end> position, since we've finished generating as soon as we generate <end>
+        # So, decoding lengths are actual lengths - 1
+        decode_lengths = (caption_lengths - 1).tolist()
+
+        # Create tensors to hold word predicion scores and alphas
+        predictions = torch.zeros(batch_size, max(
+            decode_lengths), vocab_size).to(device)
+        alphas = torch.zeros(batch_size, max(
+            decode_lengths), num_pixels).to(device)
+
+        # At each time-step, decode by
+        # attention-weighing the encoder's output based on the decoder's previous hidden state output
+        # then generate a new word in the decoder with the previous word and the attention weighted encoding
+        for t in range(max(decode_lengths)):
+            batch_size_t = sum([l > t for l in decode_lengths])
+            attention_weighted_encoding, alpha = self.attention(encoder_out[:batch_size_t],
+                                                                h[:batch_size_t])
+            # gating scalar, (batch_size_t, encoder_dim)
+            gate = self.sigmoid(self.f_beta(h[:batch_size_t]))
+            attention_weighted_encoding = gate * attention_weighted_encoding
+            h, c = self.decode_step(
+                torch.cat([embeddings[:batch_size_t, t, :],
+                           attention_weighted_encoding], dim=1),
+                semantic_input[:batch_size_t, :],
+                (h[:batch_size_t], c[:batch_size_t]))  # (batch_size_t, decoder_dim)
+            preds = self.fc(self.dropout(h))  # (batch_size_t, vocab_size)
+            predictions[:batch_size_t, t, :] = preds
+            alphas[:batch_size_t, t, :] = alpha
+
+        return predictions, encoded_captions, decode_lengths, alphas, sort_ind
