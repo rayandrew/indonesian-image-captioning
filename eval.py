@@ -10,12 +10,13 @@ from tqdm import tqdm
 
 # Parameters
 # folder with data files saved by create_input_files.py
-data_folder = '/media/ssd/caption data'
-data_name = 'coco_5_cap_per_img_5_min_word_freq'  # base name shared by data files
+data_folder = './scn_data'
+# base name shared by data files
+data_name = 'flickr10k_5_cap_per_img_5_min_word_freq'
 # model checkpoint
-checkpoint = '../BEST_checkpoint_coco_5_cap_per_img_5_min_word_freq.pth.tar'
+checkpoint = './BEST_checkpoint_flickr10k_5_cap_per_img_5_min_word_freq.pth.tar'
 # word map, ensure it's the same the data was encoded with and the model was trained with
-word_map_file = '/media/ssd/caption data/WORDMAP_coco_5_cap_per_img_5_min_word_freq.json'
+word_map_file = '/media/ssd/caption data/WORDMAP_flickr10k_5_cap_per_img_5_min_word_freq.json'
 # sets device for model and PyTorch tensors
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
@@ -195,6 +196,6 @@ def evaluate(beam_size):
 
 
 if __name__ == '__main__':
-    beam_size = 1
+    beam_size = 5
     print("\nBLEU-4 score @ beam size of %d is %.4f." %
           (beam_size, evaluate(beam_size)))
