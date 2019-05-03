@@ -24,8 +24,6 @@ from nltk.translate.bleu_score import corpus_bleu
 data_folder = './scn_data'  # folder with data files saved by create_input_files.py
 # base name shared by data files
 data_name = 'flickr10k_5_cap_per_img_5_min_word_freq'
-# tagger checkpoint
-tagger_checkpoint = './'
 
 # Model parameters
 emb_dim = 512  # dimension of word embeddings
@@ -55,6 +53,10 @@ best_bleu4 = 0.  # BLEU-4 score right now
 print_freq = 100  # print training/validation stats every __ batches
 fine_tune_encoder = False  # fine-tune encoder?
 checkpoint = None  # path to checkpoint, None if none
+
+
+# tagger checkpoint
+tagger_checkpoint = './BEST_checkpoint_tagger_flickr10k_5_cap_per_img_5_min_word_freq.pth.tar'
 
 
 def main():

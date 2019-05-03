@@ -72,4 +72,4 @@ def evaluate():
 
 if __name__ == '__main__':
     print("\nAccuracy score is %.4f." %
-          (evaluate(beam_size)))
+          (evaluate()))
