@@ -100,8 +100,8 @@ class EncoderTagger(nn.Module):
         resnet = torchvision.models.resnet152(
             pretrained=True)  # pretrained ImageNet ResNet-152
 
-        # Remove linear and pool layers (since we're not doing classification)
-        modules = list(resnet.children())[:-2]
+        # Remove linear layers (since we're not doing classification)
+        modules = list(resnet.children())[:-1]
         self.resnet = nn.Sequential(
             *modules)
 
