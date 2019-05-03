@@ -10,7 +10,7 @@ class CaptionDataset(Dataset):
     A PyTorch Dataset class to be used in a PyTorch DataLoader to create batches.
     """
 
-    def __init__(self, data_folder, data_name, split, transform=None):
+    def __init__(self, data_folder, data_name, split, transform=None, cpi=5):
         """
         :param data_folder: folder where data files are stored
         :param data_name: base name of processed datasets
@@ -29,7 +29,7 @@ class CaptionDataset(Dataset):
         self.imgs = self.h['bottlenecks']
 
         # Captions per image
-        self.cpi = self.h.attrs['captions_per_image']
+        self.cpi = cpi if cpi else self.h.attrs['captions_per_image']
 
         # Load encoded captions (completely into memory)
         with open(os.path.join(data_folder, self.split + '_CAPTIONS_' + data_name + '.json'), 'r') as j:
