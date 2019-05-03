@@ -1,3 +1,6 @@
+import torch
+
+
 class AverageMeter(object):
     """
     Keeps track of most recent, average, sum, and count of a metric.
