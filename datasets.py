@@ -26,7 +26,7 @@ class CaptionDataset(Dataset):
 
         self.h = h5py.File(os.path.join(
             data_folder, self.split + '_SCN_BOTTLENECK_' + data_name + '.hdf5'), 'r')
-        self.imgs = self.b['bottlenecks']
+        self.imgs = self.h['bottlenecks']
 
         # Captions per image
         self.cpi = self.h.attrs['captions_per_image']
