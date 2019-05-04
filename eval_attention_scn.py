@@ -8,6 +8,8 @@ from nltk.translate.bleu_score import corpus_bleu
 import torch.nn.functional as F
 from tqdm import tqdm
 
+import json
+
 # Parameters
 # folder with data files saved by create_input_files.py
 data_folder = './scn_data'
