@@ -1,3 +1,10 @@
+import os
+import json
+
+from tqdm import tqdm
+
+from nlgeval import NLGEval
+
 import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
@@ -6,9 +13,7 @@ from datasets import CaptionDataset
 from utils import *
 from nltk.translate.bleu_score import corpus_bleu
 import torch.nn.functional as F
-from tqdm import tqdm
 
-import json
 
 # Parameters
 # folder with data files saved by create_input_files.py
@@ -197,13 +202,38 @@ def evaluate(beam_size):
 
         assert len(references) == len(hypotheses)
 
-    # Calculate BLEU-4 scores
-    bleu4 = corpus_bleu(references, hypotheses)
+   # Calculate Metric scores
 
-    return bleu4
+    # Modify array so NLGEval can read it
+    references = [[] for x in range(len(references_temp[0]))]
+
+    for refs in references_temp:
+        for i in range(len(refs)):
+            references[i].append(refs[i])
+
+    os.makedirs("./evaluation", exist_ok=True)
+
+    # Creating instance of NLGEval
+    n = NLGEval(no_skipthoughts=True)
+
+    with open('./evaluation/scn_beam_{}_references.json'.format(beam_size), 'w') as f:
+        json.dump(references, f)
+        f.close()
+
+    with open('./evaluation/scn_beam_{}_hypotheses.json'.format(beam_size), 'w') as f:
+        json.dump(hypotheses, f)
+        f.close()
+
+    scores = n.compute_metrics(ref_list=references, hyp_list=hypotheses)
+
+    with open('./evaluation/scn_beam_{}_scores.json'.format(beam_size), 'w') as f:
+        json.dump(scores, f)
+        f.close()
+
+    return scores
 
 
 if __name__ == '__main__':
     beam_size = 5
-    print("\nBLEU-4 score @ beam size of %d is %.4f." %
-          (beam_size, evaluate(beam_size)))
+    print("\nScores of SCN @ beam size of {} is {}.".format(
+        beam_size, evaluate(beam_size)))

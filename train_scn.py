@@ -27,7 +27,6 @@ data_name = 'flickr10k_5_cap_per_img_5_min_word_freq'
 
 # Model parameters
 emb_dim = 512  # dimension of word embeddings
-attention_dim = 512  # dimension of attention linear layers
 decoder_dim = 512  # dimension of decoder RNN
 factored_dim = 512
 semantic_dim = 1000
