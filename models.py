@@ -87,6 +87,11 @@ class EncoderCaption(nn.Module):
                 p.requires_grad = fine_tune
 
 
+class Encoder(EncoderCaption):
+    # fallback for old model
+    pass
+
+
 class EncoderTagger(nn.Module):
     r"""Tagger Encoder extends ResNet152 Model.
 
