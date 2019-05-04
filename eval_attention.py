@@ -81,9 +81,9 @@ def evaluate(beam_size):
         image = image.to(device)  # (1, 3, 256, 256)
 
         # Encode
-        # encoder_out = encoder(image)  # (1, enc_image_size, enc_image_size, encoder_dim)
-        encoder_out = image  # (1, enc_image_size, enc_image_size, encoder_dim)
-        enc_image_size = encoder_out.size(1)
+        # (1, enc_image_size, enc_image_size, encoder_dim)
+        encoder_out = encoder(image)
+        # enc_image_size = encoder_out.size(1)
         encoder_dim = encoder_out.size(3)
 
         # Flatten encoding
