@@ -74,7 +74,7 @@ def evaluate(beam_size):
     # Lists to store references (true captions), and hypothesis (prediction) for each image
     # If for n images, we have n hypotheses, and references a, b, c... for each image, we need -
     # references = [[ref1a, ref1b, ref1c], [ref2a, ref2b], ...], hypotheses = [hyp1, hyp2, ...]
-    references = list()
+    references_temp = list()
     hypotheses = list()
 
     # For each image
@@ -192,15 +192,15 @@ def evaluate(beam_size):
         # References
         img_caps = allcaps[0].tolist()
         img_captions = list(
-            map(lambda c: [w for w in c if w not in {word_map['<start>'], word_map['<end>'], word_map['<pad>']}],
+            map(lambda c: [rev_word_map(w) for w in c if w not in {word_map['<start>'], word_map['<end>'], word_map['<pad>']}],
                 img_caps))  # remove <start> and pads
-        references.append(img_captions)
+        references_temp.append(img_captions)
 
         # Hypotheses
-        hypotheses.append([w for w in seq if w not in {
+        hypotheses.append([rev_word_map(w) for w in seq if w not in {
                           word_map['<start>'], word_map['<end>'], word_map['<pad>']}])
 
-        assert len(references) == len(hypotheses)
+        assert len(references_temp) == len(hypotheses)
 
    # Calculate Metric scores
 
