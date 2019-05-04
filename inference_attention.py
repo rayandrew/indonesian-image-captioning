@@ -1,28 +1,35 @@
 import torch
 import torch.nn.functional as F
+
 import numpy as np
 import json
 import torchvision.transforms as transforms
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import skimage.transform
+
 import argparse
+
 from scipy.misc import imread, imresize
-from PIL import Image
+
+from utils.url import is_absolute_path, read_image_from_url
+from utils.vizualize import visualize_att
+
+import warnings
+warnings.filterwarnings('ignore')
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def caption_image_beam_search(encoder, decoder, image_path, word_map, beam_size=3):
-    """
-    Reads an image and captions it with beam search.
+    r"""Reads an image and captions it with beam search.
 
-    :param encoder: encoder model
-    :param decoder: decoder model
-    :param image_path: path to image
-    :param word_map: word map
-    :param beam_size: number of sequences to consider at each decode-step
-    :return: caption, weights for visualization
+    Arguments
+        encoder (nn.Module): encoder model
+        decoder (nn.Module): decoder model
+        image_path (String or File Object): path to image
+        word_map (Dictionary): word map
+        beam_size (int, optional): number of sequences to consider at each decode-step
+    Return
+        String : caption
+        Float  : weights for visualization
     """
 
     k = beam_size
@@ -36,11 +43,11 @@ def caption_image_beam_search(encoder, decoder, image_path, word_map, beam_size=
     img = imresize(img, (256, 256))
     img = img.transpose(2, 0, 1)
     img = img / 255.
-    img = torch.FloatTensor(img).to(device)
+    img = torch.FloatTensor(img)
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
     transform = transforms.Compose([normalize])
-    image = transform(img)  # (3, 256, 256)
+    image = transform(img).to(device)  # (3, 256, 256)
 
     # Encode
     image = image.unsqueeze(0)  # (1, 3, 256, 256)
@@ -160,54 +167,15 @@ def caption_image_beam_search(encoder, decoder, image_path, word_map, beam_size=
     return seq, alphas
 
 
-def visualize_att(image_path, seq, alphas, rev_word_map, smooth=True):
-    """
-    Visualizes caption with weights at every word.
-
-    Adapted from paper authors' repo: https://github.com/kelvinxu/arctic-captions/blob/master/alpha_visualization.ipynb
-
-    :param image_path: path to image that has been captioned
-    :param seq: caption
-    :param alphas: weights
-    :param rev_word_map: reverse word mapping, i.e. ix2word
-    :param smooth: smooth weights?
-    """
-    image = Image.open(image_path)
-    image = image.resize([14 * 24, 14 * 24], Image.LANCZOS)
-
-    words = [rev_word_map[ind] for ind in seq]
-
-    for t in range(len(words)):
-        if t > 50:
-            break
-        plt.subplot(np.ceil(len(words) / 5.), 5, t + 1)
-
-        plt.text(0, 1, '%s' % (words[t]), color='black',
-                 backgroundcolor='white', fontsize=12)
-        plt.imshow(image)
-        current_alpha = alphas[t, :]
-        if smooth:
-            alpha = skimage.transform.pyramid_expand(
-                current_alpha.numpy(), upscale=24, sigma=8)
-        else:
-            alpha = skimage.transform.resize(
-                current_alpha.numpy(), [14 * 24, 14 * 24])
-        if t == 0:
-            plt.imshow(alpha, alpha=0)
-        else:
-            plt.imshow(alpha, alpha=0.8)
-        plt.set_cmap(cm.Greys_r)
-        plt.axis('off')
-    plt.show()
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='Show, Attend, and Tell - Tutorial - Generate Caption')
+        description='[Indonesian Image Captioning] -- (S)how (A)ttend and (T)ell -- Generate Caption')
 
     parser.add_argument('--img', '-i', help='path to image')
-    parser.add_argument('--model', '-m', default='./BEST_checkpoint_attention_flickr10k_5_cap_per_img_5_min_word_freq.pth.tar' help='path to model')
-    parser.add_argument('--word_map', '-wm', help='path to word map JSON')
+    parser.add_argument(
+        '--model', '-m', default='./pretrained/BEST_checkpoint_attention_flickr10k_5_cap_per_img_5_min_word_freq.pth.tar', help='path to model')
+    parser.add_argument(
+        '--word_map', '-wm', default='./scn_data/WORDMAP_flickr10k_5_cap_per_img_5_min_word_freq.json', help='path to word map JSON')
     parser.add_argument('--beam_size', '-b', default=5,
                         type=int, help='beam size for beam search')
     parser.add_argument('--dont_smooth', dest='smooth',
@@ -215,8 +183,14 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    file_img = args.img
+
+    if is_absolute_path(args.img):
+        file_img = read_image_from_url(args.img)
+
     # Load model
-    checkpoint = torch.load(args.model)
+    checkpoint = torch.load(
+        args.model, map_location=lambda storage, loc: storage)
     decoder = checkpoint['decoder']
     decoder = decoder.to(device)
     decoder.eval()
@@ -231,8 +205,8 @@ if __name__ == '__main__':
 
     # Encode, decode with attention and beam search
     seq, alphas = caption_image_beam_search(
-        encoder, decoder, args.img, word_map, args.beam_size)
+        encoder, decoder, file_img, word_map, args.beam_size)
     alphas = torch.FloatTensor(alphas)
 
     # Visualize caption and attention of best sequence
-    visualize_att(args.img, seq, alphas, rev_word_map, args.smooth)
+    visualize_att(file_img, seq, alphas, rev_word_map, args.smooth)

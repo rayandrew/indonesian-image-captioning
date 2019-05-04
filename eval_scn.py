@@ -202,7 +202,7 @@ def evaluate(beam_size):
 
         assert len(references_temp) == len(hypotheses)
 
-   # Calculate Metric scores
+    # Calculate Metric scores
 
     # Modify array so NLGEval can read it
     references = [[] for x in range(len(references_temp[0]))]
