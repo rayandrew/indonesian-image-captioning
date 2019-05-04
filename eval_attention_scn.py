@@ -32,8 +32,8 @@ encoder = checkpoint['encoder']
 encoder = encoder.to(device)
 encoder.eval()
 
-tagger_checkpint = torch.load(tagger_checkpoint)
-encoder_tagger = checkpoint['encoder']
+tagger_checkpoint = torch.load(tagger_checkpoint)
+encoder_tagger = tagger_checkpoint['encoder']
 encoder_tagger = encoder_tagger.to(device)
 encoder_tagger.eval()
 

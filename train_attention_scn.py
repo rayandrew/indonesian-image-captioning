@@ -40,7 +40,7 @@ cudnn.benchmark = True
 # Training parameters
 start_epoch = 0
 # number of epochs to train for (if early stopping is not triggered)
-epochs = 120
+epochs = 12
 # keeps track of number of epochs since there's been an improvement in validation BLEU
 epochs_since_improvement = 0
 batch_size = 32
