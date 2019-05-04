@@ -663,7 +663,7 @@ class DecoderSCN(nn.Module):
         self.embedding = nn.Embedding(vocab_size, embed_dim)  # embedding layer
         self.dropout = nn.Dropout(p=self.dropout)
         self.decode_step = SCNCell(
-            embed_dim + encoder_dim, decoder_dim, semantic_dim, factored_dim, bias=True)  # decoding SCNCell
+            embed_dim, decoder_dim, semantic_dim, factored_dim, bias=True)  # decoding SCNCell
         # linear layer to find initial hidden state of LSTMCell
         self.init_h = nn.Linear(encoder_dim, decoder_dim)
         # linear layer to find initial cell state of LSTMCell
@@ -729,7 +729,7 @@ class DecoderSCN(nn.Module):
         # Flatten image
         # (batch_size, num_pixels, encoder_dim)
         encoder_out = encoder_out.view(batch_size, -1, encoder_dim)
-        num_pixels = encoder_out.size(1)
+        # num_pixels = encoder_out.size(1)
 
         # Sort input data by decreasing lengths; why? apparent below
         caption_lengths, sort_ind = caption_lengths.squeeze(
