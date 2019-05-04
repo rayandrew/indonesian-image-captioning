@@ -20,7 +20,7 @@ data_folder = './scn_data'
 # base name shared by data files
 data_name = 'flickr10k_5_cap_per_img_5_min_word_freq'
 # model checkpoint
-checkpoint = './BEST_checkpoint_scn_flickr10k_5_cap_per_img_5_min_word_freq.pth.tar'
+checkpoint = './BEST_checkpoint_attention_scn_flickr10k_5_cap_per_img_5_min_word_freq.pth.tar'
 tagger_checkpoint = './BEST_checkpoint_tagger_flickr10k_5_cap_per_img_5_min_word_freq.pth.tar'
 # word map, ensure it's the same the data was encoded with and the model was trained with
 word_map_file = './scn_data/WORDMAP_flickr10k_5_cap_per_img_5_min_word_freq.json'
