@@ -1,4 +1,7 @@
+import os
 import time
+
+import json
 
 import torch.backends.cudnn as cudnn
 import torch.optim
@@ -7,9 +10,9 @@ import torchvision.transforms as transforms
 from torch import nn
 from torch.nn.utils.rnn import pack_padded_sequence
 
-from models import Encoder, DecoderWithAttention
+from models import EncoderCaption, DecoderWithAttention
 
-from datasets import *
+from datasets import CaptionDataset
 
 from utils.checkpoint import save_checkpoint
 from utils.metric import AverageMeter, accuracy
@@ -19,20 +22,25 @@ from nltk.translate.bleu_score import corpus_bleu
 
 # Data parameters
 data_folder = './scn_data'  # folder with data files saved by create_input_files.py
-data_name = 'flickr10k_5_cap_per_img_5_min_word_freq'  # base name shared by data files
+# base name shared by data files
+data_name = 'flickr10k_5_cap_per_img_5_min_word_freq'
 
 # Model parameters
 emb_dim = 512  # dimension of word embeddings
 attention_dim = 512  # dimension of attention linear layers
 decoder_dim = 512  # dimension of decoder RNN
 dropout = 0.5
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # sets device for model and PyTorch tensors
-cudnn.benchmark = True  # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
+# sets device for model and PyTorch tensors
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# set to true only if inputs to model are fixed size; otherwise lot of computational overhead
+cudnn.benchmark = True
 
 # Training parameters
 start_epoch = 0
-epochs = 120  # number of epochs to train for (if early stopping is not triggered)
-epochs_since_improvement = 0  # keeps track of number of epochs since there's been an improvement in validation BLEU
+# number of epochs to train for (if early stopping is not triggered)
+epochs = 12
+# keeps track of number of epochs since there's been an improvement in validation BLEU
+epochs_since_improvement = 0
 batch_size = 32
 workers = 1  # for data-loading; right now, only 1 works with h5py
 encoder_lr = 1e-4  # learning rate for encoder if fine-tuning
@@ -68,7 +76,7 @@ def main():
                                        dropout=dropout)
         decoder_optimizer = torch.optim.Adam(params=filter(lambda p: p.requires_grad, decoder.parameters()),
                                              lr=decoder_lr)
-        encoder = Encoder()
+        encoder = EncoderCaption()
         encoder.fine_tune(fine_tune_encoder)
         encoder_optimizer = torch.optim.Adam(params=filter(lambda p: p.requires_grad, encoder.parameters()),
                                              lr=encoder_lr) if fine_tune_encoder else None
@@ -98,10 +106,12 @@ def main():
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
     train_loader = torch.utils.data.DataLoader(
-        CaptionDataset(data_folder, data_name, 'TRAIN', transform=transforms.Compose([normalize])),
+        CaptionDataset(data_folder, data_name, 'TRAIN',
+                       transform=transforms.Compose([normalize])),
         batch_size=batch_size, shuffle=True, num_workers=workers, pin_memory=True)
     val_loader = torch.utils.data.DataLoader(
-        CaptionDataset(data_folder, data_name, 'VAL', transform=transforms.Compose([normalize])),
+        CaptionDataset(data_folder, data_name, 'VAL',
+                       transform=transforms.Compose([normalize])),
         batch_size=batch_size, shuffle=True, num_workers=workers, pin_memory=True)
 
     # Epochs
@@ -136,14 +146,15 @@ def main():
         best_bleu4 = max(recent_bleu4, best_bleu4)
         if not is_best:
             epochs_since_improvement += 1
-            print("\nEpochs since last improvement: %d\n" % (epochs_since_improvement,))
+            print("\nEpochs since last improvement: %d\n" %
+                  (epochs_since_improvement,))
         else:
             epochs_since_improvement = 0
 
         print('Saving checkpoint for epoch {}\n'.format(epoch + 1))
 
         # Save checkpoint
-        save_checkpoint(data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
+        save_checkpoint('attention', data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
                         decoder_optimizer, recent_bleu4, is_best)
 
 
@@ -181,15 +192,21 @@ def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_
 
         # Forward prop.
         imgs = encoder(imgs)
-        scores, caps_sorted, decode_lengths, alphas, sort_ind = decoder(imgs, caps, caplens)
+        scores, caps_sorted, decode_lengths, alphas, sort_ind = decoder(
+            imgs, caps, caplens)
 
         # Since we decoded starting with <start>, the targets are all words after <start>, up to <end>
         targets = caps_sorted[:, 1:]
 
         # Remove timesteps that we didn't decode at, or are pads
         # pack_padded_sequence is an easy trick to do this
-        scores, _ = pack_padded_sequence(scores, decode_lengths, batch_first=True)
-        targets, _ = pack_padded_sequence(targets, decode_lengths, batch_first=True)
+        packed_scores = pack_padded_sequence(
+            scores, decode_lengths, batch_first=True)
+        packed_targets = pack_padded_sequence(
+            targets, decode_lengths, batch_first=True)
+
+        scores = packed_scores.data
+        targets = packed_targets.data
 
         # Calculate loss
         loss = criterion(scores, targets)
@@ -271,7 +288,8 @@ def validate(val_loader, encoder, decoder, criterion):
             # Forward prop.
             if encoder is not None:
                 imgs = encoder(imgs)
-            scores, caps_sorted, decode_lengths, alphas, sort_ind = decoder(imgs, caps, caplens)
+            scores, caps_sorted, decode_lengths, alphas, sort_ind = decoder(
+                imgs, caps, caplens)
 
             # Since we decoded starting with <start>, the targets are all words after <start>, up to <end>
             targets = caps_sorted[:, 1:]
@@ -279,8 +297,13 @@ def validate(val_loader, encoder, decoder, criterion):
             # Remove timesteps that we didn't decode at, or are pads
             # pack_padded_sequence is an easy trick to do this
             scores_copy = scores.clone()
-            scores, _ = pack_padded_sequence(scores, decode_lengths, batch_first=True)
-            targets, _ = pack_padded_sequence(targets, decode_lengths, batch_first=True)
+            packed_scores = pack_padded_sequence(
+                scores, decode_lengths, batch_first=True)
+            packed_targets = pack_padded_sequence(
+                targets, decode_lengths, batch_first=True)
+
+            scores = packed_scores.data
+            targets = packed_targets.data
 
             # Calculate loss
             loss = criterion(scores, targets)
@@ -308,7 +331,8 @@ def validate(val_loader, encoder, decoder, criterion):
             # references = [[ref1a, ref1b, ref1c], [ref2a, ref2b], ...], hypotheses = [hyp1, hyp2, ...]
 
             # References
-            allcaps = allcaps[sort_ind]  # because images were sorted in the decoder
+            # because images were sorted in the decoder
+            allcaps = allcaps[sort_ind]
             for j in range(allcaps.shape[0]):
                 img_caps = allcaps[j].tolist()
                 img_captions = list(

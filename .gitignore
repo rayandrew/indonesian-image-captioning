@@ -147,4 +147,8 @@ Temporary Items
 graph
 scn_data
 dataset
-dataset_bak
+pretrained
+*_bak
+evaluation
+figures
+*.txt
