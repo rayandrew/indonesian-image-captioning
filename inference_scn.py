@@ -221,4 +221,6 @@ if __name__ == '__main__':
         print('{} {}'.format(rev_tag_map[idx], tags[idx]))
     print()
 
-    print('Caption generated : {}'.format([rev_word_map[ind] for ind in seq]))
+    print('Caption generated :')
+    print(' '.join([rev_word_map[ind] for ind in seq if ind not in {
+          word_map['<start>'], word_map['<end>'], word_map['<pad>']}]))
