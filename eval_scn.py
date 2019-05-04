@@ -192,12 +192,12 @@ def evaluate(beam_size):
         # References
         img_caps = allcaps[0].tolist()
         img_captions = list(
-            map(lambda c: [rev_word_map(w) for w in c if w not in {word_map['<start>'], word_map['<end>'], word_map['<pad>']}],
+            map(lambda c: [rev_word_map[w] for w in c if w not in {word_map['<start>'], word_map['<end>'], word_map['<pad>']}],
                 img_caps))  # remove <start> and pads
         references_temp.append(img_captions)
 
         # Hypotheses
-        hypotheses.append([rev_word_map(w) for w in seq if w not in {
+        hypotheses.append([rev_word_map[w] for w in seq if w not in {
                           word_map['<start>'], word_map['<end>'], word_map['<pad>']}])
 
         assert len(references_temp) == len(hypotheses)
