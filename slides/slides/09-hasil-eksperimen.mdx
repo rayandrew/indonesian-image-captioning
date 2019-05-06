@@ -1,0 +1,165 @@
+import { Fragment } from 'react';
+
+import { Head, Appear } from 'mdx-deck';
+import { Split } from 'mdx-deck/layouts';
+
+import Box from '../components/Box';
+import Layout from '../components/Layout';
+
+<Head>
+    <title>Semantic Compositional Networks | Ray Andrew | Result of Experiment</title>
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@raydreee" />
+    <meta name="twitter:title" content="Final Project - Indonesian Image Captioning" />
+    <meta name="twitter:description" content="Indonesian Image Captioning using Semantic Compositional Networks" />
+    <meta name="twitter:image" content="https://example.com/card.png" />
+</Head>
+
+## Hasil Eksperimen
+
+---
+
+### Image Tagger
+
+---
+
+export default Split;
+
+<Layout>
+
+| Metric               | Value*        |
+|----------------------|--------------:|
+| _Train Acc_          | 98.799        |
+| _Train Loss_         | 0.046         |
+| _Val Acc_            | 98.728        |
+| _Val Loss_           | 0.0466        |
+| _Test Acc_           | 98.6550       |
+
+</Layout>
+
+<Layout>
+<p align='left'>
+    <b style={{ color: '#9a1750' }}>Catatan:</b>
+    <ul style={{ textAlign: 'justify' }}>
+        <li><b>*</b> dihitung pada <b><i>epoch</i></b> ke-<b>10</b></li> 
+        <br />
+        <li>Fungsi <i>loss</i> yang digunakan adalah <b><i>Binary Cross Entropy</i></b></li>
+        <br />
+        <li>Metrik akurasi yang digunakan adalah : <b><pre>(score >= 0.5)<br />.eq(targets >= 0.5)<br />.mean()</pre></b></li>
+    </ul>
+</p>
+</Layout>
+
+---
+
+export default Split;
+
+![example-img](./images/example-img.jpg)
+
+<Layout>
+<p align='left'>
+    <h2 style={{ color: '#9a1750' }}>Tag Terdeteksi:</h2>
+    <ul style={{ textAlign: 'justify' }}>
+        <li>...</li>
+        <li><b>pria</b> 0.36657464504</li>
+        <li><b>merah</b> 0.4391737580</li>
+        <li><b>jalan</b> 0.4624072611</li>
+        <li><b>kelompok</b> 0.477054476</li>
+        <li><b>orang</b> 0.8167493343</li>
+    </ul>
+</p>
+</Layout>
+
+---
+
+### Pembangkitan Deskripsi Gambar
+
+---
+
+export default Split;
+
+<Box css={{ paddingLeft: '50px' }}>
+
+| Metrics              | SCN            | Attention         | SCN + Attention  |
+|----------------------|:--------------:|:-----------------:|-----------------:|
+| _BLEU-1_             | 0.537          | 0.570             | **0.578**        |
+| _BLEU-2_             | 0.344          | 0.386             | **0.396**        |
+| _BLEU-3_             | 0.211          | 0.249             | **0.256**        |
+| _BLEU-4_             | 0.124          | 0.152             | **0.160**        |
+| _ROUGE_L_            | 0.428          | 0.442             | **0.451**        |
+| _CIDEr-D_            | 0.366          | **0.455**         | 0.449            |
+
+</Box>
+
+<Layout>
+<p>
+    <b style={{ color: '#9a1750' }}>Catatan:</b>
+    <ul style={{ textAlign: 'justify' }}>
+        <li>Model terbaik adalah <b>SCN + Attention</b> dimana skor <b><i>BLEU-4</i></b> terbaik diperoleh ketika <i>epoch</i> ke-<b>6</b> berakhir</li>
+    </ul>
+</p>
+</Layout>
+
+---
+
+### Contoh Deskripsi Gambar
+
+---
+
+export default Layout;
+
+![example-captioning](./images/example-captioning.png)
+
+<p>
+..., air (0.3107), buah (0.3242), pria (0.3665), merah (0.4391), jalan (0.4624), kelompok (0.4770), orang (0.8167)
+</p>
+
+---
+
+export default Layout;
+
+![example-captioning-two](./images/example-captioning-two.png)
+
+<p>
+..., luncur (0.4463), bukit (0.4830), gunung (0.4905), main (0.6015), orang (0.7313), salju (0.9769)
+</p>
+
+---
+
+export default Layout;
+
+![example-captioning-three](./images/example-captioning-three.png)
+
+<p>
+..., jalan (0.2439), main (0.3182), laki (0.3811), anak (0.5798), air (0.7314), orang (0.954)
+</p>
+
+---
+
+export default Layout;
+
+![example-captioning-four](./images/example-captioning-four.png)
+
+<p>
+..., putih (0.3474), lintas (0.3821), lompat (0.4121), udara (0.4307), pria (0.480), orang (0.566)
+</p>
+
+---
+
+export default Layout;
+
+![example-captioning-five](./images/example-captioning-five.png)
+
+<p>
+..., wanita (0.220), pakai (0.228), buah (0.292), putih (0.307), hitam (0.320), kuning (0.527), orang (0.823)
+</p>
+
+---
+
+export default Layout;
+
+![example-captioning-six](./images/example-captioning-six.png)
+
+<p>
+..., pakai (0.2575), pria (0.2679), hijau (0.2679), ekor (0.2698), buah (0.2699), orang (0.7669)
+</p>

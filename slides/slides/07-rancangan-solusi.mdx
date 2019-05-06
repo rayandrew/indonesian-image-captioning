@@ -1,0 +1,218 @@
+import { Head, Appear, Notes } from 'mdx-deck';
+import { Split, SplitRight } from 'mdx-deck/layouts';
+import { CodeSurfer } from 'mdx-deck-code-surfer';
+
+import Box from '../components/Box';
+import Layout from '../components/Layout';
+import CodeLayout from '../components/CodeLayout';
+
+<Head>
+    <title>Semantic Compositional Networks | Ray Andrew | Solution</title>
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@raydreee" />
+    <meta name="twitter:title" content="Final Project - Indonesian Image Captioning" />
+    <meta name="twitter:description" content="Indonesian Image Captioning using Semantic Compositional Networks" />
+    <meta name="twitter:image" content="https://example.com/card.png" />
+</Head>
+
+## Rancangan Solusi
+
+---
+
+### Kakas
+
+---
+
+export default Split;
+
+## Python
+
+<div style={{ background: '#9a1750' }}>
+
+![python](https://www.python.org/static/img/python-logo@2x.png)
+
+</div>
+
+---
+
+export default Split;
+
+![pytorch](https://pytorch.org/assets/images/pytorch-logo.png)
+
+## Pytorch
+### +
+## TorchVision
+
+---
+
+### __Baseline__
+#### Semantic Compositional Networks
+
+
+![scn-architecture](./images/scn-architecture.png)
+
+---
+
+export default Split;
+
+### __Baseline__
+#### RESNET-152
+
+![resnet-152](./images/resnet-152.png)
+
+<Layout>
+    <p align='justify'>Akan menghasilkan dua output</p>
+    <ul style={{ textAlign: 'justify' }}>
+        <li><i>Global Visual Vector</i></li>
+        <li><i>Semantic Tag Probabilities</i> (dalam bahasa Indonesia)</li>
+    </ul>
+</Layout>
+
+---
+
+export default Split;
+
+<Box>
+
+#### __SCN Cell__
+
+<Layout>
+    <img src='./images/scn-cell-calc.png' width='500' height='450' />
+</Layout>
+</Box>
+
+<Box>
+
+#### __LSTM Cell__
+
+<Layout>
+    <img src='./images/lstm-cell-calc.png' width='500' height='300' />
+    <p>v = vektor visual <br /> s = konsep semantik</p>
+</Layout>
+</Box>
+
+---
+
+### Why **SCN?**
+
+<Layout>
+    <ul style={{ textAlign: 'justify' }}>
+        <li>Lebih fleksibel dan<i>scalable</i> dikarenakanadanya pendeteksian konsep semantik <i>(image tags)</i></li>
+        <Appear>
+            <li>Memiliki kemampuan setara<b><i>K ensemble of tag-dependent RNN </i></b> (K = jumlah tag)</li>
+        </Appear>
+    </ul>
+</Layout>
+
+<Notes>
+Kenapa fleksibel? Dikarenakan penentuan tags akan sangat berpengaruh pada pembentukan model pembelajaran. 
+
+Dengan mengganti tags yang bersesuaian, maka deskripsi yang dibangkit akan secara fleksibel mengikuti tags yang didefenisikan
+Setiap segitiga warna biru pada gambar merepresentasikan ensemble of <i>tag dependent weight matrices</i>
+</Notes>
+
+---
+
+### Arsitektur
+
+---
+
+export default Split;
+
+<img src='./images/image-tagger.png' height='500' width='200' />
+
+## Image Tagger
+
+---
+
+export default Split;
+
+<Layout>
+
+### Image Tagger
+
+</Layout>
+
+<Layout>
+
+![image-tagger-flow](./images/image-tagger-flow.png)
+
+</Layout>
+
+---
+
+export default CodeLayout;
+
+import tagger from '!raw-loader!../codes/tagger.code';
+
+<CodeSurfer
+  title="Image Tagger Model"
+  code={tagger}
+  lang="python"
+  steps={[
+    { notes: 'Pytorch Implementation' },
+     { range: [14, 32], notes: 'Initialize Weight' },
+    { range: [34, 47], notes: 'Forward Step' }
+  ]}
+/>
+
+---
+
+export default Split;
+
+### Caption Model
+
+<Layout>
+
+![solution-plan](./images/solution-plan.png)
+
+</Layout>
+
+---
+
+export default Layout;
+
+![scn-flow](./images/scn-flow.png)
+
+---
+
+### SCN Cell Implementation
+
+---
+
+export default CodeLayout;
+
+import scn_cell from '!raw-loader!../codes/scn_cell.code';
+
+<CodeSurfer
+  title="SCN Cell"
+  code={scn_cell}
+  lang="python"
+  steps={[
+    { notes: 'Pytorch Implementation' },
+    { range: [12, 41], notes: 'Initialize Weight' },
+    { range: [43, 73], notes: 'Factorize Embedding' },
+    { range: [94, 126], notes: 'Recurrent Step' }
+  ]}
+/>
+
+---
+
+### Attention Network
+
+---
+
+export default CodeLayout;
+
+import attention from '!raw-loader!../codes/attention.code';
+
+<CodeSurfer
+  title="Attention Network"
+  code={attention}
+  lang="python"
+  steps={[
+    { notes: 'Pytorch Implementation' },
+    { range: [10, 19], notes: 'Initialize Weight' },
+    { range: [21, 39], notes: 'Forward Step' },
+  ]}
+/>

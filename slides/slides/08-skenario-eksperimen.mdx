@@ -1,0 +1,96 @@
+import { Fragment } from 'react';
+
+import { Head, Appear } from 'mdx-deck';
+import { Split } from 'mdx-deck/layouts';
+
+import Box from '../components/Box';
+import Layout from '../components/Layout';
+
+<Head>
+    <title>Semantic Compositional Networks | Ray Andrew | Experiment Scenario</title>
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@raydreee" />
+    <meta name="twitter:title" content="Final Project - Indonesian Image Captioning" />
+    <meta name="twitter:description" content="Indonesian Image Captioning using Semantic Compositional Networks" />
+    <meta name="twitter:image" content="https://example.com/card.png" />
+</Head>
+
+## Skenario Eksperimen
+
+---
+
+export default Split;
+
+### Dataset
+
+<Box css={{ padding: '100px' }}>
+<b><a href="http://bryanplummer.com/Flickr30kEntities/">Flickr 30K Dataset</a></b> by (Plummer, et. al., 2017) <b>REDUCED</b> to <b>10K</b>
+
+<div>
+    <h3>80% Train</h3>
+    <h3>10% Validation</h3>
+    <h3>10% Test</h3>
+</div>
+</Box>
+
+---
+
+### Default Parameters
+
+<Layout>
+
+| Parameters           | Value         |
+|----------------------|--------------:|
+| _Semantic Concept_   | 1000          |
+| _Caption Per Image_  | 5             |
+| _Min Word Freq_      | 5             |
+| _Max Caption Length_ | 100           |
+
+</Layout>
+
+---
+
+### Image Tagger
+
+| Parameters           | Value         |
+|----------------------|--------------:|
+| _Epoch_              | 10            |
+| _Batch Size_         | 32            |
+| _Learning Rate_      | 100           |
+| _Dropout_            | 0.15          |
+| _Optimizer_          | Adam          |
+
+---
+
+### Pembangkitan Deskripsi Gambar
+
+---
+
+export default Split;
+
+<Box css={{ paddingLeft: '50px' }}>
+
+| Parameters           | SCN            | Attention         | SCN + Attention  |
+|----------------------|:--------------:|:-----------------:|-----------------:|
+| _Epoch_              | 12             | 12                | 12               |
+| _Batch Size_         | 32             | 32                | 32               |
+| _Learning Rate_      | 4e-4           | 4e-4              | 4e-4             |
+| _Dropout_            | 0.5            | 0.5               | 0.5              |
+| _Optimizer_          | Adam           | Adam              | Adam             |
+| _Embedding_          | 512            | 512               | 512              |
+| _Attention_          | -              | 512               | 512              |
+| _Factor_             | 512            | -                 | 512              |
+| _Decoder_            | 512            | 512               | 512              |
+
+</Box>
+
+<Layout>
+<p>
+    <b style={{ color: '#9a1750' }}>Catatan:</b>
+    <ul style={{ textAlign: 'justify' }}>
+        <li>Pure Attention merupakan implementasi dari Paper <a href='https://arxiv.org/abs/1502.03044'><i>Show, Attend, and Tell</i> (Xu, dkk., 2016)</a></li>
+        <li><i>Caption model</i> dilatih untuk memaksimalkan skor <b><i>BLEU-4</i></b> agar <i>caption model</i> mampu menghasilkan banyak kosa kata yang terkandung pada referensi</li>
+    </ul>
+</p>
+</Layout>
+

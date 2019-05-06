@@ -1,0 +1,62 @@
+import { Fragment } from 'react';
+
+import { Head, Appear } from 'mdx-deck';
+import { Split } from 'mdx-deck/layouts';
+
+import Box from '../components/Box';
+import Layout from '../components/Layout';
+
+<Head>
+    <title>Semantic Compositional Networks | Ray Andrew | Analysis</title>
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@raydreee" />
+    <meta name="twitter:title" content="Final Project - Indonesian Image Captioning" />
+    <meta name="twitter:description" content="Indonesian Image Captioning using Semantic Compositional Networks" />
+    <meta name="twitter:image" content="https://example.com/card.png" />
+</Head>
+
+## Analisis
+
+---
+
+- Penambahan fitur __*Attention*__ terbukti dapat meningkatkan performa model pembangkitan deskripsi gambar
+
+<p align='justify'>
+Hal ini dikarenakan <b style={{ color: '#9a1750' }}>Attention <i>Network</i></b> bertujuan untuk mengurangi <b><i>'noise'</i></b> pada vektor-vektor visual yang diperoleh pada gambar. <b><i>Noise</i></b> yang berkemungkinan besar dapat membuat pembangkitan <i>sequence</i> selanjutnya tidak sesuai konteks, akan tidak <b>di-perhatikan</b> dengan cara membuat bobot <b><i>noise</i></b> yang bersangkutan mendekati 0.
+</p>
+
+---
+
+- Penambahan konsep semantik (__*tag*__) terbukti dapat meningkatkan performa model pembangkitan deskripsi gambar
+
+<p align='justify'>
+Hal ini seperti yang telah dikemukakan sebelumnya bahwa <b style={{ color: '#9a1750' }}><i>SCN</i></b> berjalan layaknya <b>K-<i>ensemble of RNNs/LSTMs</i></b>, dimana <b>K</b> merupakan jumlah semantik yang terdefinisi. Arsitektur <b style={{ color: '#9a1750' }}><i>SCN</i></b> menghasilkan deskripsi gambar yang sangat dipengaruhi oleh probabilitas konsep semantik yang muncul pada gambar. Konsep semantik bertujuan untuk menguatkan bobot-bobot konteks gambar pada deskripsi yang dihasilkan.
+</p>
+
+---
+
+
+- __*Image Tagger*__ cenderung menghasilkan <i>tag</i> yang jumlahnya sangat banyak pada <i>dataset</i>, contoh : __orang__
+
+<p align='justify'>
+Hal ini dikarenakan peristiwa <b><i>imbalance dataset</i></b> dimana setiap deskripsi gambar rata-rata mengandung kata 
+orang atau <b><i>man / woman</i></b> dalam bahasa Inggris
+</p>
+
+---
+
+- Dikarenakan *tag* yang tidak sesuai, maka hasil deskripsi gambar pun terkadang tidak sesuai
+
+<p align='justify'>
+Hal ini dikarenakan <b style={{ color: '#9a1750' }}>SCN Cell</b> melakukan pemfaktoran terhadap masukan dari LSTM <i>(word embedding dan visual vector)</i> agar konsep semantik (<i>tag</i>) dapat diinjeksikan untuk memperkuat pembangkitan deskripsi gambar. Jika <b style={{ color: '#9a1750' }}>konsep semantik yang dihasilkan buruk</b>,
+maka <b style={{ color: '#9a1750' }}>deskripsi gambar yang dihasilkan juga akan buruk</b>.
+</p>
+
+---
+
+- Model tidak *robust* dikarenakan kualitas dan jumlah data latih yang kurang baik pada setiap domain gambar
+
+<p align='justify'>
+Jika dibandingkan dengan <i>paper</i> <b style={{ color: '#9a1750' }}>Semantic Compositional Networks</b> oleh Gan, dkk. (2017), <b style={{ color: '#9a1750' }}>SCN</b> dilatih pada data yang sangat besar yaitu <b style={{ color: '#9a1750' }}>COCO <i>Dataset</i></b> yang berjumlah sekitar 80K gambar dan masing-masing 5 deskripsi.
+<br /><b style={{ color: '#9a1750' }}>COCO <i>Dataset</i></b> dalam bahasa Inggris juga sudah dijadikan acuan dalam pembentukan model pembangkitan deskripsi gambar dalam bahasa Inggris dikarenakan kualitas deskripsi dan gambar yang sangat baik.
+</p>

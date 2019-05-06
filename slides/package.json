@@ -1,0 +1,26 @@
+{
+  "name": "slide-ta",
+  "version": "0.0.1",
+  "description": "Presentation Slide for my Final Project",
+  "main": "index.js",
+  "scripts": {
+    "start": "mdx-deck index.js",
+    "pdf": "mdx-deck pdf index.js",
+    "screenshot": "mdx-deck screenshot index.js",
+    "build": "mdx-deck build index.js",
+    "no-html": "mdx-deck build --no-html index.js",
+    "help": "mdx-deck",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ray Andrew <raydreww@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "mdx-deck": "1.10.2",
+    "mdx-deck-code-surfer": "^0.5.5",
+    "prop-types": "^15.7.2",
+    "raw-loader": "^2.0.0",
+    "react-icons": "^3.6.1",
+    "styled-components": "^4.2.0",
+    "styled-system": "^4.2.1"
+  }
+}
