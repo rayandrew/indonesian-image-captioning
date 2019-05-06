@@ -1,14 +1,16 @@
 {
-  "name": "slide-ta",
+  "name": "slide-indonesian-image-captioning",
   "version": "0.0.1",
-  "description": "Presentation Slide for my Final Project",
+  "description": "Presentation Slide for Indonesian Image Captioning",
   "main": "index.js",
   "scripts": {
     "start": "mdx-deck index.js",
     "pdf": "mdx-deck pdf index.js",
     "screenshot": "mdx-deck screenshot index.js",
-    "build": "mdx-deck build index.js",
-    "no-html": "mdx-deck build --no-html index.js",
+    "build:presentation": "mdx-deck build --no-html index.js",
+    "build:images": "cp -r images dist/",
+    "build:assets": "cp -r snippets dist/",
+    "now-build": "npm run build:presentation && npm run build:images && npm run build:assets",
     "help": "mdx-deck",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
