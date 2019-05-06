@@ -1,11 +1,15 @@
 import { future } from 'mdx-deck/themes';
 
-const blue = '#0af';
-const lightBlue = '#66fcf1';
-const purple = '#0b032d';
-const red = '#9a1750';
-const black = '#111'
-const grey = '#e3e2df';
+import {
+    blue,
+    black,
+    lightBlue,
+    red,
+    purple,
+    grey,
+} from './colors';
+
+import Provider from './components/Provider';
 
 const pandaPrismTheme /*: PrismTheme */ = {
     'plain': {
@@ -103,6 +107,7 @@ const pandaPrismTheme /*: PrismTheme */ = {
     ]
 };
 
+
 export default {
     ...future,
     colors: {
@@ -133,4 +138,5 @@ export default {
         ...pandaPrismTheme,
         showNumbers: false,
     },
+    Provider,
 }
