@@ -8,6 +8,10 @@ from tqdm import tqdm
 from collections import Counter
 from random import seed, choice, sample
 
+from nltk import pos_tag, tokenize, WordNetLemmatizer
+
+lemma = WordNetLemmatizer()
+
 
 def get_ground_truth(tags, all_tags, tags_count):
     """Create ground truth array (like one-hot)
@@ -25,6 +29,15 @@ def get_ground_truth(tags, all_tags, tags_count):
         ground_truth[all_tags[tag]] = 1.0
 
     return ground_truth
+
+
+def get_tags_en(sentence, tokenize=False):
+    tokens = tokenize.word_tokenize(sentence) if tokenize else sentence
+    tokens = [lemma.lemmatize(token) for token in tokens]
+    tags = pos_tag(tokens)
+
+    # get only nouns
+    return [x[0] for x in tags if x[1] in {'NN', 'NNP', 'NNS', 'NNPS'}]
 
 
 def _filter_data_by_indexes(filenames, data, indexes):
@@ -47,13 +60,14 @@ def _filter_data_by_indexes(filenames, data, indexes):
     return filtered_filenames, filtered_data
 
 
-def load_dataset(path_folder):
-    """Load caption from folder. The folder must has the structure like this:
-    /filenames.json -- contain list of filenames
-    /captions.json -- contain list of list of caption
-    /train.txt -- contain all train indexes
-    /val.txt -- contain all validation indexes
-    /test.txt -- contain all test indexes
+def load_flickr10k(path_folder):
+    r"""Load caption from folder. The folder must has the structure like this:
+        /filenames.json -- contain list of filenames
+        /captions.json -- contain list of list of caption
+        /train.txt -- contain all train indexes
+        /val.txt -- contain all validation indexes
+        /test.txt -- contain all test indexes
+
     Arguments:
         path_folder {str} -- string of path folder
     Returns:
@@ -112,7 +126,6 @@ def load_dataset(path_folder):
     for (filename, caption, tag) in zip(filenames_train, captions_train, tags_train):
         temp = {
             'split': 'train',
-            'filepath': './scn_dataset',
             'filename': filename,
             'tags': tag,
         }
@@ -129,7 +142,6 @@ def load_dataset(path_folder):
     for (filename, caption, tag) in zip(filenames_val, captions_val, tags_val):
         temp = {
             'split': 'val',
-            'filepath': './scn_dataset',
             'filename': filename,
             'tags': tag,
         }
@@ -146,7 +158,6 @@ def load_dataset(path_folder):
     for (filename, caption, tag) in zip(filenames_test, captions_test, tags_test):
         temp = {
             'split': 'test',
-            'filepath': './scn_dataset',
             'filename': filename,
             'tags': tag,
         }
@@ -188,21 +199,27 @@ def create_input_files(dataset,
                        output_folder,
                        tag_size=1000,
                        max_len=100):
-    """
-    Creates input files for training, validation, and test data.
-    :param dataset: name of dataset, currently supported 'flick10k'
-    :param split_path: path of index, tags, and caption
-    :param image_folder: folder with downloaded images
-    :param captions_per_image: number of captions to sample per image
-    :param min_word_freq: words occuring less frequently than this threshold are binned as <unk>s
-    :param output_folder: folder to save files
-    :param tag_size: tag vocab count
-    :param max_len: don't sample captions longer than this length
+    r"""Creates input files for training, validation, and test data.
+
+    Arguments
+        dataset: name of dataset, currently supported {'flick10k', 'coco', 'flickr30k', 'flickr8k'}
+        split_path: path of index, tags, and caption emitted in karpathy json format
+        image_folder: folder with downloaded images
+        captions_per_image: number of captions to sample per image
+        min_word_freq: words occuring less frequently than this threshold are binned as <unk>s
+        output_folder: folder to save files
+        tag_size: tag vocab count
+        max_len: don't sample captions longer than this length
     """
 
-    assert dataset in {'flickr10k'}
+    assert dataset in {'flickr10k', 'coco', 'flickr30k', 'flickr8k'}
 
-    data = load_dataset(split_path)
+    os.makedirs(output_folder, exist_ok=True)
+
+    if dataset == 'flickr10k':
+        data = load_flickr10k(split_path)
+    else:
+        data = json.load(open(split_path, 'r'))
 
     # Read image paths and captions for each image
     train_image_paths = []
@@ -218,13 +235,30 @@ def create_input_files(dataset,
     test_image_tags = []
 
     word_freq = Counter()
+    all_tags = Counter()
+
+    if dataset != 'flickr10k':
+        # Iterate to get word_freq and all_tags
+        for img in data['images']:
+            for c in img['sentences']:
+                # Update word frequency
+                word_freq.update(c['tokens'])
+                all_tags.update(get_tags_en(c['tokens']))
+
+        all_tags = all_tags.most_common(tag_size)
+        all_tags = [tag[0] for tag in all_tags]
 
     for img in data['images']:
         captions = []
+        tags = []
+
         for c in img['sentences']:
-            # Update word frequency
-            word_freq.update(c['tokens'])
             if len(c['tokens']) <= max_len:
+                if dataset != 'flickr10k':
+                    for x in c['tokens']:
+                        if x in all_tags:
+                            tags.append(x)
+
                 captions.append(c['tokens'])
 
         if len(captions) == 0:
@@ -236,15 +270,24 @@ def create_input_files(dataset,
         if img['split'] in {'train', 'restval'}:
             train_image_paths.append(path)
             train_image_captions.append(captions)
-            train_image_tags.append(img['tags'])
+            if dataset == 'flickr10k':
+                train_image_tags.append(img['tags'])
+            else:
+                train_image_tags.append(tags)
         elif img['split'] in {'val'}:
             val_image_paths.append(path)
             val_image_captions.append(captions)
-            val_image_tags.append(img['tags'])
+            if dataset == 'flickr10k':
+                val_image_tags.append(img['tags'])
+            else:
+                val_image_tags.append(tags)
         elif img['split'] in {'test'}:
             test_image_paths.append(path)
             test_image_captions.append(captions)
-            test_image_tags.append(img['tags'])
+            if dataset == 'flickr10k':
+                test_image_tags.append(img['tags'])
+            else:
+                test_image_tags.append(tags)
 
     # Sanity check
     assert len(train_image_paths) == len(
@@ -274,7 +317,8 @@ def create_input_files(dataset,
 
     # Save tag map to a JSON
     with open(os.path.join(output_folder, 'TAGMAP_' + base_filename + '.json'), 'w') as j:
-        tagwordidx = {v: k for k, v in enumerate(data['all_tags'])}
+        tagwordidx = {v: k for k, v in enumerate(
+            data['all_tags'] if dataset == 'flickr10k' else all_tags)}
         # idxword = {k: v for k, v in enumerate(data['all_tags'])}
         json.dump(tagwordidx, j)
         j.close()
@@ -288,7 +332,7 @@ def create_input_files(dataset,
 
         with h5py.File(os.path.join(output_folder, split + '_IMAGES_' + base_filename + '.hdf5'), 'w') as h, \
                 h5py.File(os.path.join(output_folder, split + '_TAGS_' + base_filename + '.hdf5'), 'w') as t:
-                # Make a note of the number of captions we are sampling per image
+            # Make a note of the number of captions we are sampling per image
             h.attrs['captions_per_image'] = captions_per_image
 
             # Make a note of the vocab tag vocab defined
@@ -371,4 +415,4 @@ def create_input_files(dataset,
                 j.close()
 
             t.close()
-            h.close()
+    #         h.close()

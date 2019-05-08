@@ -152,3 +152,4 @@ pretrained
 evaluation
 figures
 *.txt
+mongo_data
