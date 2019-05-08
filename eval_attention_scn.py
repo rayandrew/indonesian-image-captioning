@@ -192,9 +192,6 @@ def evaluate(beam_size):
                 break
             step += 1
 
-        i = complete_seqs_scores.index(max(complete_seqs_scores))
-        seq = complete_seqs[i]
-
         # References
         img_caps = allcaps[0].tolist()
         img_captions = list(
@@ -203,8 +200,14 @@ def evaluate(beam_size):
         references_temp.append(img_captions)
 
         # Hypotheses
-        hypotheses.append(' '.join([rev_word_map[w] for w in seq if w not in {
-                          word_map['<start>'], word_map['<end>'], word_map['<pad>']}]))
+        if len(complete_seqs_scores) > 0:
+            i = complete_seqs_scores.index(max(complete_seqs_scores))
+            seq = complete_seqs[i]
+
+            hypotheses.append(' '.join([rev_word_map[w] for w in seq if w not in {
+                word_map['<start>'], word_map['<end>'], word_map['<pad>']}]))
+        else:
+            hypotheses.append('unk')
 
         assert len(references_temp) == len(hypotheses)
 
