@@ -238,14 +238,14 @@ def create_input_files(dataset,
     word_freq = Counter()
     all_tags = Counter()
 
-    if dataset not in id_dataset:
-        # Iterate to get word_freq and all_tags
-        for img in data['images']:
-            for c in img['sentences']:
-                # Update word frequency
-                word_freq.update(c['tokens'])
-                all_tags.update(get_tags_en(c['tokens']))
+    # Iterate to get word_freq and all_tags
+    for img in data['images']:
+        for c in img['sentences']:
+            # Update word frequency
+            word_freq.update(c['tokens'])
+            all_tags.update(get_tags_en(c['tokens']))
 
+    if dataset not in id_dataset:
         all_tags = all_tags.most_common(tag_size)
         all_tags = [tag[0] for tag in all_tags]
 
@@ -253,6 +253,7 @@ def create_input_files(dataset,
         captions = []
         tags = []
 
+        # Append Caption and Tag
         for c in img['sentences']:
             if len(c['tokens']) <= max_len:
                 if dataset not in id_dataset:
