@@ -9,6 +9,9 @@ __pycache__/
 # Dataset
 data/
 dataset/
+*_dataset/
+data.py
+*_bak.py
 
 # VSCode
 .vscode/

@@ -202,7 +202,7 @@ def create_input_files(dataset,
     r"""Creates input files for training, validation, and test data.
 
     Arguments
-        dataset: name of dataset, currently supported {'flick10k', 'coco', 'flickr30k', 'flickr8k'}
+        dataset: name of dataset, currently supported {'flick10k', 'coco-id', 'coco', 'flickr30k', 'flickr8k'}
         split_path: path of index, tags, and caption emitted in karpathy json format
         image_folder: folder with downloaded images
         captions_per_image: number of captions to sample per image
@@ -212,7 +212,8 @@ def create_input_files(dataset,
         max_len: don't sample captions longer than this length
     """
 
-    assert dataset in {'flickr10k', 'coco', 'flickr30k', 'flickr8k'}
+    assert dataset in {'flickr10k', 'coco_id', 'coco', 'flickr30k', 'flickr8k'}
+    id_dataset = {'flickr10k', 'coco_id'}
 
     os.makedirs(output_folder, exist_ok=True)
 
@@ -237,7 +238,7 @@ def create_input_files(dataset,
     word_freq = Counter()
     all_tags = Counter()
 
-    if dataset != 'flickr10k':
+    if dataset not in id_dataset:
         # Iterate to get word_freq and all_tags
         for img in data['images']:
             for c in img['sentences']:
@@ -254,7 +255,7 @@ def create_input_files(dataset,
 
         for c in img['sentences']:
             if len(c['tokens']) <= max_len:
-                if dataset != 'flickr10k':
+                if dataset not in id_dataset:
                     for x in c['tokens']:
                         if x in all_tags:
                             tags.append(x)
@@ -270,24 +271,18 @@ def create_input_files(dataset,
         if img['split'] in {'train', 'restval'}:
             train_image_paths.append(path)
             train_image_captions.append(captions)
-            if dataset == 'flickr10k':
-                train_image_tags.append(img['tags'])
-            else:
-                train_image_tags.append(tags)
+            train_image_captions.append(
+                img['tags'] if dataset in id_dataset else tags)
         elif img['split'] in {'val'}:
             val_image_paths.append(path)
             val_image_captions.append(captions)
-            if dataset == 'flickr10k':
-                val_image_tags.append(img['tags'])
-            else:
-                val_image_tags.append(tags)
+            val_image_captions.append(
+                img['tags'] if dataset in id_dataset else tags)
         elif img['split'] in {'test'}:
             test_image_paths.append(path)
             test_image_captions.append(captions)
-            if dataset == 'flickr10k':
-                test_image_tags.append(img['tags'])
-            else:
-                test_image_tags.append(tags)
+            test_image_tags.append(
+                img['tags'] if dataset in id_dataset else tags)
 
     # Sanity check
     assert len(train_image_paths) == len(
@@ -318,7 +313,7 @@ def create_input_files(dataset,
     # Save tag map to a JSON
     with open(os.path.join(output_folder, 'TAGMAP_' + base_filename + '.json'), 'w') as j:
         tagwordidx = {v: k for k, v in enumerate(
-            data['all_tags'] if dataset == 'flickr10k' else all_tags)}
+            data['all_tags'] if dataset in id_dataset else all_tags)}
         # idxword = {k: v for k, v in enumerate(data['all_tags'])}
         json.dump(tagwordidx, j)
         j.close()
