@@ -271,12 +271,12 @@ def create_input_files(dataset,
         if img['split'] in {'train', 'restval'}:
             train_image_paths.append(path)
             train_image_captions.append(captions)
-            train_image_captions.append(
+            train_image_tags.append(
                 img['tags'] if dataset in id_dataset else tags)
         elif img['split'] in {'val'}:
             val_image_paths.append(path)
             val_image_captions.append(captions)
-            val_image_captions.append(
+            val_image_tags.append(
                 img['tags'] if dataset in id_dataset else tags)
         elif img['split'] in {'test'}:
             test_image_paths.append(path)
