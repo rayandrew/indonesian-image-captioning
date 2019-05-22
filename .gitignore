@@ -156,3 +156,5 @@ evaluation
 figures
 *.txt
 mongo_data
+logs
+*.json
