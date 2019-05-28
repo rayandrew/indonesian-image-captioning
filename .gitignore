@@ -12,6 +12,7 @@ dataset/
 *_dataset/
 data.py
 *_bak.py
+*bak.py
 
 # VSCode
 .vscode/
@@ -150,7 +151,7 @@ Temporary Items
 graph
 scn_data
 dataset
-pretrained
+pretrained*
 *_bak
 evaluation
 figures
@@ -158,3 +159,7 @@ figures
 mongo_data
 logs
 *.json
+data*.py
+beam_search_viz.ipynb
+multi-att-scn.ipynb
+viz_attention_scn_dict.ipynb

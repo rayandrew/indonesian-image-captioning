@@ -179,7 +179,7 @@ def train(train_loader, encoder, encoder_tagger, decoder, criterion, encoder_opt
     Arguments
         train_loader (Generator): DataLoader for training data
         encoder (torch.nn.Module): encoder model
-        encoder_tagge (torch.nn.Module)r: image tagger model
+        encoder_tagger (torch.nn.Module): image tagger model
         decoder (torch.nn.Module): decoder model
         criterion (Loss): loss layer
         encoder_optimizer (Optimizer): optimizer to update encoder's weights (if fine-tuning)
@@ -275,7 +275,7 @@ def validate(val_loader, encoder, encoder_tagger, decoder, criterion):
     Arguments
         val_loader (Generator): DataLoader for validation data.
         encoder (torch.nn.Module): encoder model
-        encoder_tagge (torch.nn.Module): image tagger model
+        encoder_tagger (torch.nn.Module): image tagger model
         decoder (torch.nn.Module): decoder model
         criterion (Loss): loss layer
     Return
