@@ -42,7 +42,6 @@ def evaluate(args):
         batch_size=1, shuffle=True, num_workers=1, pin_memory=True)
 
     need_tag = args.type in scn_based_model
-    need_att = args.type in att_based_model
 
     # Load word map (word2ix)
     with open(args.word_map, 'r') as j:
@@ -52,7 +51,6 @@ def evaluate(args):
     # Load tag map (word2ix)
     with open(args.tag_map, 'r') as j:
         tag_map = json.load(j)
-    rev_tag_map = {v: k for k, v in tag_map.items()}
 
     vocab_size = len(word_map)
 
@@ -169,7 +167,7 @@ def evaluate(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='[(S)how (A)ttend (T)ell -- Attention] - Eval Caption')
+        description='[(S)how (A)ttend (T)ell - (S)emantic (C)ompositional (N)etworks] - Eval Caption')
 
     parser.add_argument('--type', '-t', help='model type')
     parser.add_argument('--model_caption', '-mc',

@@ -10,11 +10,13 @@ import torchvision.transforms as transforms
 from torch import nn
 from torch.nn.utils.rnn import pack_padded_sequence
 
-from models import EncoderCaption, DecoderSCNWithAttention
+from models.encoders.caption import EncoderCaption
+from models.decoders.pure_attention import PureAttention
 
 from datasets import CaptionDataset
 
 from utils.checkpoint import save_checkpoint
+from utils.device import get_device
 from utils.metric import AverageMeter, accuracy
 from utils.optimizer import clip_gradient, adjust_learning_rate
 
@@ -29,11 +31,9 @@ data_name = 'flickr10k_5_cap_per_img_5_min_word_freq'
 emb_dim = 512  # dimension of word embeddings
 attention_dim = 512  # dimension of attention linear layers
 decoder_dim = 512  # dimension of decoder RNN
-factored_dim = 512
-semantic_dim = 1000
 dropout = 0.5
 # sets device for model and PyTorch tensors
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = get_device()
 # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
 cudnn.benchmark = True
 
@@ -55,16 +55,12 @@ fine_tune_encoder = False  # fine-tune encoder?
 checkpoint = None  # path to checkpoint, None if none
 
 
-# tagger checkpoint
-tagger_checkpoint = './BEST_checkpoint_tagger_flickr10k_5_cap_per_img_5_min_word_freq.pth.tar'
-
-
 def main():
     """
     Training and validation.
     """
 
-    global best_bleu4, epochs_since_improvement, checkpoint, tagger_checkpoint, start_epoch, fine_tune_encoder, data_name, word_map
+    global best_bleu4, epochs_since_improvement, checkpoint, start_epoch, fine_tune_encoder, data_name, word_map
 
     print('Running on device {}\n'.format(device))
 
@@ -74,18 +70,12 @@ def main():
         word_map = json.load(j)
 
     # Initialize / load checkpoint
-    tagger_checkpoint = torch.load(tagger_checkpoint)
-    encoder_tagger = tagger_checkpoint['encoder']
-    encoder_tagger.fine_tune(False)
-
     if checkpoint is None:
-        decoder = DecoderSCNWithAttention(attention_dim=attention_dim,
-                                          embed_dim=emb_dim,
-                                          decoder_dim=decoder_dim,
-                                          factored_dim=factored_dim,
-                                          semantic_dim=semantic_dim,
-                                          vocab_size=len(word_map),
-                                          dropout=dropout)
+        decoder = PureAttention(attention_dim=attention_dim,
+                                embed_dim=emb_dim,
+                                decoder_dim=decoder_dim,
+                                vocab_size=len(word_map),
+                                dropout=dropout)
         decoder_optimizer = torch.optim.Adam(params=filter(lambda p: p.requires_grad, decoder.parameters()),
                                              lr=decoder_lr)
         encoder = EncoderCaption()
@@ -110,7 +100,6 @@ def main():
     # Move to GPU, if available
     decoder = decoder.to(device)
     encoder = encoder.to(device)
-    encoder_tagger = encoder_tagger.to(device)
 
     # Loss function
     criterion = nn.CrossEntropyLoss().to(device)
@@ -142,7 +131,6 @@ def main():
         # One epoch's training
         train(train_loader=train_loader,
               encoder=encoder,
-              encoder_tagger=encoder_tagger,
               decoder=decoder,
               criterion=criterion,
               encoder_optimizer=encoder_optimizer,
@@ -152,7 +140,6 @@ def main():
         # One epoch's validation
         recent_bleu4 = validate(val_loader=val_loader,
                                 encoder=encoder,
-                                encoder_tagger=encoder_tagger,
                                 decoder=decoder,
                                 criterion=criterion)
 
@@ -169,27 +156,25 @@ def main():
         print('Saving checkpoint for epoch {}\n'.format(epoch + 1))
 
         # Save checkpoint
-        save_checkpoint('attention_scn', data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
+        save_checkpoint('attention', data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
                         decoder_optimizer, recent_bleu4, is_best)
 
 
-def train(train_loader, encoder, encoder_tagger, decoder, criterion, encoder_optimizer, decoder_optimizer, epoch):
-    r"""Performs one epoch's training.
+def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, epoch):
+    """
+    Performs one epoch's training.
 
-    Arguments
-        train_loader (Generator): DataLoader for training data
-        encoder (torch.nn.Module): encoder model
-        encoder_tagger (torch.nn.Module): image tagger model
-        decoder (torch.nn.Module): decoder model
-        criterion (Loss): loss layer
-        encoder_optimizer (Optimizer): optimizer to update encoder's weights (if fine-tuning)
-        decoder_optimizer (Optimizer): optimizer to update decoder's weights
-        epoch (int): epoch number
+    :param train_loader: DataLoader for training data
+    :param encoder: encoder model
+    :param decoder: decoder model
+    :param criterion: loss layer
+    :param encoder_optimizer: optimizer to update encoder's weights (if fine-tuning)
+    :param decoder_optimizer: optimizer to update decoder's weights
+    :param epoch: epoch number
     """
 
     decoder.train()  # train mode (dropout and batchnorm is used)
     encoder.train()
-    encoder_tagger.train()
 
     batch_time = AverageMeter()  # forward prop. + back prop. time
     data_time = AverageMeter()  # data loading time
@@ -208,10 +193,9 @@ def train(train_loader, encoder, encoder_tagger, decoder, criterion, encoder_opt
         caplens = caplens.to(device)
 
         # Forward prop.
-        encoder_out = encoder(imgs)
-        tags = encoder_tagger(imgs)
-        scores, caps_sorted, decode_lengths, alphas, _ = decoder(
-            encoder_out, tags, caps, caplens)
+        imgs = encoder(imgs)
+        scores, caps_sorted, decode_lengths, alphas, sort_ind = decoder(
+            imgs, caps, caplens)
 
         # Since we decoded starting with <start>, the targets are all words after <start>, up to <end>
         targets = caps_sorted[:, 1:]
@@ -269,21 +253,19 @@ def train(train_loader, encoder, encoder_tagger, decoder, criterion, encoder_opt
                                                                           top5=top5accs))
 
 
-def validate(val_loader, encoder, encoder_tagger, decoder, criterion):
-    r"""Performs one epoch's validation.
+def validate(val_loader, encoder, decoder, criterion):
+    """
+    Performs one epoch's validation.
 
-    Arguments
-        val_loader (Generator): DataLoader for validation data.
-        encoder (torch.nn.Module): encoder model
-        encoder_tagger (torch.nn.Module): image tagger model
-        decoder (torch.nn.Module): decoder model
-        criterion (Loss): loss layer
-    Return
-        Float: BLEU-4 score
+    :param val_loader: DataLoader for validation data.
+    :param encoder: encoder model
+    :param decoder: decoder model
+    :param criterion: loss layer
+    :return: BLEU-4 score
     """
     decoder.eval()  # eval mode (no dropout or batchnorm)
-    encoder.eval()
-    encoder_tagger.eval()
+    if encoder is not None:
+        encoder.eval()
 
     batch_time = AverageMeter()
     losses = AverageMeter()
@@ -306,10 +288,10 @@ def validate(val_loader, encoder, encoder_tagger, decoder, criterion):
             caplens = caplens.to(device)
 
             # Forward prop.
-            encoder_out = encoder(imgs)
-            tags = encoder_tagger(imgs)
+            if encoder is not None:
+                imgs = encoder(imgs)
             scores, caps_sorted, decode_lengths, alphas, sort_ind = decoder(
-                encoder_out, tags, caps, caplens)
+                imgs, caps, caplens)
 
             # Since we decoded starting with <start>, the targets are all words after <start>, up to <end>
             targets = caps_sorted[:, 1:]

@@ -7,11 +7,12 @@ import torchvision.transforms as transforms
 from torch import nn
 from torch.nn.utils.rnn import pack_padded_sequence
 
-from models import EncoderTagger
+from models.encoders.tagger import EncoderTagger
 
 from datasets import TagDataset
 
 from utils.checkpoint import save_tagger_checkpoint
+from utils.device import get_device
 from utils.metric import AverageMeter, binary_accuracy
 from utils.optimizer import clip_gradient, adjust_learning_rate
 
@@ -24,7 +25,7 @@ data_name = 'flickr10k_5_cap_per_img_5_min_word_freq'
 semantic_size = 1000
 dropout = 0.15
 # sets device for model and PyTorch tensors
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = get_device()
 # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
 cudnn.benchmark = True
 

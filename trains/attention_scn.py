@@ -10,11 +10,13 @@ import torchvision.transforms as transforms
 from torch import nn
 from torch.nn.utils.rnn import pack_padded_sequence
 
-from models import EncoderCaption, DecoderSCN
+from models.encoders.caption import EncoderCaption
+from models.decoders.attention_scn import AttentionSCN
 
 from datasets import CaptionDataset
 
 from utils.checkpoint import save_checkpoint
+from utils.device import get_device
 from utils.metric import AverageMeter, accuracy
 from utils.optimizer import clip_gradient, adjust_learning_rate
 
@@ -27,12 +29,13 @@ data_name = 'flickr10k_5_cap_per_img_5_min_word_freq'
 
 # Model parameters
 emb_dim = 512  # dimension of word embeddings
+attention_dim = 512  # dimension of attention linear layers
 decoder_dim = 512  # dimension of decoder RNN
 factored_dim = 512
 semantic_dim = 1000
 dropout = 0.5
 # sets device for model and PyTorch tensors
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = get_device()
 # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
 cudnn.benchmark = True
 
@@ -47,6 +50,7 @@ workers = 1  # for data-loading; right now, only 1 works with h5py
 encoder_lr = 1e-4  # learning rate for encoder if fine-tuning
 decoder_lr = 4e-4  # learning rate for decoder
 grad_clip = 5.  # clip gradients at an absolute value of
+alpha_c = 1.  # regularization parameter for 'doubly stochastic attention', as in the paper
 best_bleu4 = 0.  # BLEU-4 score right now
 print_freq = 100  # print training/validation stats every __ batches
 fine_tune_encoder = False  # fine-tune encoder?
@@ -77,12 +81,13 @@ def main():
     encoder_tagger.fine_tune(False)
 
     if checkpoint is None:
-        decoder = DecoderSCN(embed_dim=emb_dim,
-                             decoder_dim=decoder_dim,
-                             factored_dim=factored_dim,
-                             semantic_dim=semantic_dim,
-                             vocab_size=len(word_map),
-                             dropout=dropout)
+        decoder = AttentionSCN(attention_dim=attention_dim,
+                               embed_dim=emb_dim,
+                               decoder_dim=decoder_dim,
+                               factored_dim=factored_dim,
+                               semantic_dim=semantic_dim,
+                               vocab_size=len(word_map),
+                               dropout=dropout)
         decoder_optimizer = torch.optim.Adam(params=filter(lambda p: p.requires_grad, decoder.parameters()),
                                              lr=decoder_lr)
         encoder = EncoderCaption()
@@ -166,7 +171,7 @@ def main():
         print('Saving checkpoint for epoch {}\n'.format(epoch + 1))
 
         # Save checkpoint
-        save_checkpoint('scn', data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
+        save_checkpoint('attention_scn', data_name, epoch, epochs_since_improvement, encoder, decoder, encoder_optimizer,
                         decoder_optimizer, recent_bleu4, is_best)
 
 
@@ -176,7 +181,7 @@ def train(train_loader, encoder, encoder_tagger, decoder, criterion, encoder_opt
     Arguments
         train_loader (Generator): DataLoader for training data
         encoder (torch.nn.Module): encoder model
-        encoder_tagge (torch.nn.Module)r: image tagger model
+        encoder_tagger (torch.nn.Module): image tagger model
         decoder (torch.nn.Module): decoder model
         criterion (Loss): loss layer
         encoder_optimizer (Optimizer): optimizer to update encoder's weights (if fine-tuning)
@@ -207,7 +212,7 @@ def train(train_loader, encoder, encoder_tagger, decoder, criterion, encoder_opt
         # Forward prop.
         encoder_out = encoder(imgs)
         tags = encoder_tagger(imgs)
-        scores, caps_sorted, decode_lengths, _ = decoder(
+        scores, caps_sorted, decode_lengths, alphas, _ = decoder(
             encoder_out, tags, caps, caplens)
 
         # Since we decoded starting with <start>, the targets are all words after <start>, up to <end>
@@ -225,6 +230,9 @@ def train(train_loader, encoder, encoder_tagger, decoder, criterion, encoder_opt
 
         # Calculate loss
         loss = criterion(scores, targets)
+
+        # Add doubly stochastic attention regularization
+        loss += alpha_c * ((1. - alphas.sum(dim=1)) ** 2).mean()
 
         # Back prop.
         decoder_optimizer.zero_grad()
@@ -269,7 +277,7 @@ def validate(val_loader, encoder, encoder_tagger, decoder, criterion):
     Arguments
         val_loader (Generator): DataLoader for validation data.
         encoder (torch.nn.Module): encoder model
-        encoder_tagge (torch.nn.Module): image tagger model
+        encoder_tagger (torch.nn.Module): image tagger model
         decoder (torch.nn.Module): decoder model
         criterion (Loss): loss layer
     Return
@@ -302,7 +310,7 @@ def validate(val_loader, encoder, encoder_tagger, decoder, criterion):
             # Forward prop.
             encoder_out = encoder(imgs)
             tags = encoder_tagger(imgs)
-            scores, caps_sorted, decode_lengths, sort_ind = decoder(
+            scores, caps_sorted, decode_lengths, alphas, sort_ind = decoder(
                 encoder_out, tags, caps, caplens)
 
             # Since we decoded starting with <start>, the targets are all words after <start>, up to <end>
@@ -321,6 +329,9 @@ def validate(val_loader, encoder, encoder_tagger, decoder, criterion):
 
             # Calculate loss
             loss = criterion(scores, targets)
+
+            # Add doubly stochastic attention regularization
+            loss += alpha_c * ((1. - alphas.sum(dim=1)) ** 2).mean()
 
             # Keep track of metrics
             losses.update(loss.item(), sum(decode_lengths))
