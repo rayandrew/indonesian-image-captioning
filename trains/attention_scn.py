@@ -13,7 +13,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from models.encoders.caption import EncoderCaption
 from models.decoders.attention_scn import AttentionSCN
 
-from datasets import CaptionDataset
+from datasets.caption import CaptionDataset
 
 from utils.checkpoint import save_checkpoint
 from utils.device import get_device

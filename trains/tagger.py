@@ -9,7 +9,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 
 from models.encoders.tagger import EncoderTagger
 
-from datasets import TagDataset
+from datasets.tag import TagDataset
 
 from utils.checkpoint import save_tagger_checkpoint
 from utils.device import get_device

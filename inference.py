@@ -1,12 +1,11 @@
 import argparse
 import warnings
 
-import torch
-
 import numpy as np
 import json
 from scipy.misc import imread, imresize
 
+import torch
 import torchvision.transforms as transforms
 
 from utils.device import get_device

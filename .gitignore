@@ -163,3 +163,5 @@ data*.py
 beam_search_viz.ipynb
 multi-att-scn.ipynb
 viz_attention_scn_dict.ipynb
+
+sample_image
