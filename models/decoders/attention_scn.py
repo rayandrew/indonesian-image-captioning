@@ -161,15 +161,13 @@ class AttentionSCN(nn.Module):
         r"""Reads an image and captions it with beam search.
 
         Arguments
-            encoder (nn.Module): encoder model
-            encoder_tagger (nn.Module): encoder tagger model
-            decoder (nn.Module): decoder model
-            image_path (String or File Object): path to image
+            beam_size (int): number of sequences to consider at each decode-step
             word_map (Dictionary): word map
-            beam_size (int, optional): number of sequences to consider at each decode-step
+            encoder_out (torch.Tensor): output of encoder model, tensor of dimension (1, enc_image_size, enc_image_size, encoder_dim)
+            tag_out (torch.Tensor): output of image tagger, tensor of dimension (1, semantic_dim)
         Return
-            String : caption
-            Float  : weights for visualization
+            [String] : caption tokens
+            Float    : weights for visualization
         """
 
         k = beam_size

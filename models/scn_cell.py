@@ -50,6 +50,15 @@ class SCNCell(nn.Module):
         self.reset_parameters()
 
     def forward(self, wemb_input, semantic_input, hx=None):
+        r"""Forward propagation.
+
+        Arguments
+            wemb_input (torch.Tensor): word embedding input, a tensor of dimension (batch_size, input_size)
+            semantic_input (torch.Tensor): semantic concepts input, a tensor of dimension (batch_size, semantic_dim)
+        Returns
+            torch.Tensor: next hidden state, next cell state
+        """
+
         self.check_forward_input(wemb_input)
 
         [ia_i, ia_f, ia_o, ia_c] = split_tensor2d(
@@ -101,6 +110,16 @@ class SCNCell(nn.Module):
         return self.recurrent_step(x_i, x_f, x_o, x_c, semantic_input, hx)
 
     def recurrent_step(self, x_i, x_f, x_o, x_c, semantic_input, hx):
+        r"""Recurrent step helper for forward propagation.
+
+        Arguments
+            x_i, x_f, x_o, x_c (torch.Tensor): factorized input, containing information from word embedding and semantic concepts, tensors of dimension (batch_size, input_size)
+            semantic_input (torch.Tensor): semantic concepts input, a tensor of dimension (batch_size, semantic_dim)
+            h_x (torch.Tensor): initial value of hidden and cell state
+        Returns
+            torch.Tensor: next hidden state, next cell state
+        """
+
         h_, c_ = hx
 
         [ha_i, ha_f, ha_o, ha_c] = split_tensor2d(

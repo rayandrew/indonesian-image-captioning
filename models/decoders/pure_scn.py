@@ -140,6 +140,17 @@ class PureSCN(nn.Module):
         return predictions, encoded_captions, decode_lengths, sort_ind
 
     def sample(self, beam_size, word_map, encoder_out, tag_out):
+        r"""Reads an image and captions it with beam search.
+
+        Arguments
+            beam_size (int): number of sequences to consider at each decode-step
+            word_map (Dictionary): word map
+            encoder_out (torch.Tensor): output of encoder model, tensor of dimension (1, enc_image_size, enc_image_size, encoder_dim)
+            tag_out (torch.Tensor): output of image tagger, tensor of dimension (1, semantic_dim)
+        Return
+            [String]: caption tokens
+        """
+
         k = beam_size
         vocab_size = len(word_map)
 
