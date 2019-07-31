@@ -76,7 +76,7 @@ What things you need to install this project and how to install them
 
 #### Pretrained Model
 
-You can download pretrained models and scn_data from [THIS LINK](bit.ly/AttentionSCN_ID)
+You can download pretrained models and scn_data from [THIS LINK](http://bit.ly/AttentionSCN_ID)
 
 > Just copy the `pretrained` and `scn_data` folder into this project
 
