@@ -70,9 +70,9 @@ What things you need to install this project and how to install them
 
 - [Nlg-Eval](https://github.com/Maluuba/nlg-eval) for evaluation metrics
 
-> This project used BLEU, ROUGE, METEOR, nad CIDEr-D as evaluation metrics
+> This project used BLEU, ROUGE, METEOR, and CIDEr-D as evaluation metrics for English caption
 >
-> > METEOR and CIDEr-D is not used because there is no implementation of METEOR and CIDEr-D in Indonesian Language
+> > METEOR and CIDEr-D is not used in Indonesian because there is no implementation of METEOR and CIDEr-D in Indonesian language
 
 #### Pretrained Model
 
