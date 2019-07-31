@@ -10,6 +10,8 @@ from random import seed, choice, sample
 
 from nltk import pos_tag, tokenize, WordNetLemmatizer
 
+from utils.token import start_token, end_token, unknown_token, padding_token
+
 lemma = WordNetLemmatizer()
 
 
@@ -298,10 +300,10 @@ def create_input_files(dataset,
     # Create word map
     words = [w for w in word_freq.keys() if word_freq[w] > min_word_freq]
     word_map = {k: v + 1 for v, k in enumerate(words)}
-    word_map['<unk>'] = len(word_map) + 1
-    word_map['<start>'] = len(word_map) + 1
-    word_map['<end>'] = len(word_map) + 1
-    word_map['<pad>'] = 0
+    word_map[unknown_token] = len(word_map) + 1
+    word_map[start_token] = len(word_map) + 1
+    word_map[end_token] = len(word_map) + 1
+    word_map[padding_token] = 0
 
     # Create a base/root name for all output files
     base_filename = dataset + '_' + \
@@ -383,8 +385,8 @@ def create_input_files(dataset,
 
                     for j, c in enumerate(captions):
                         # Encode captions
-                        enc_c = [word_map['<start>']] + [word_map.get(word, word_map['<unk>']) for word in c] + [
-                            word_map['<end>']] + [word_map['<pad>']] * (max_len - len(c))
+                        enc_c = [word_map[start_token]] + [word_map.get(word, word_map[unknown_token]) for word in c] + [
+                            word_map[end_token]] + [word_map[padding_token]] * (max_len - len(c))
 
                         # Find caption lengths
                         c_len = len(c) + 2
