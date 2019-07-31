@@ -154,7 +154,7 @@ dataset
 pretrained*
 *_bak
 evaluation
-figures
+# figures
 *.txt
 mongo_data
 logs
